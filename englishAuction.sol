@@ -8,6 +8,7 @@ contract englishAuction {
     uint public minIcrement;
     // Prezzo per l'acquisto diretto senza asta
     uint public buyoutPrice;
+    
     // Numero di blocchi che devono passare prima di terminare l'asta
     uint public minBlocks;
     
@@ -17,26 +18,26 @@ contract englishAuction {
     bool buyoutEnded = false;
     bool ended = false;
     
+    uint public val = 0;
     
-    constructor(uint _reservePrice, uint _minIcrement, uint _buyoutPrice, uint _minBlocks, address payable _beneficiary) public{
+    
+    constructor(uint _reservePrice, uint _minIcrement, uint _buyoutPrice, uint _minBlocks, address payable _beneficiary) public payable{
         reservePrice = _reservePrice;
         minIcrement = _minIcrement;
-        buyoutPrice = _buyoutPrice;
+        buyoutPrice = _buyoutPrice * 1 wei;
         minBlocks = _minBlocks;
         beneficiary = _beneficiary;
     }
     
     function acquistoDiretto() public payable{
-        require(!buyoutEnded);
-        require(!ended);
-        
-        if(msg.value == buyoutPrice){
-            buyer = msg.sender;
-            buyoutEnded = true;
-            ended = true;
-            beneficiary.transfer(buyoutPrice);
-        }
-        
+        require(!buyoutEnded, "fine buyout");
+        require(!ended, "fine asta");
+        require(msg.value == buyoutPrice, "diversi");
+            
+        buyer = msg.sender;
+        buyoutEnded = true;
+        ended = true;
+        beneficiary.transfer(buyoutPrice);
         
     }
     
