@@ -12,6 +12,9 @@ contract englishAuction {
     // Numero di blocchi che devono passare prima di terminare l'asta
     uint public minBlocks;
     
+    uint public highestBid;
+    address public highestBidder;
+    
     address public buyer;
     address payable public beneficiary;
     
@@ -20,6 +23,8 @@ contract englishAuction {
     
     uint public val = 0;
     
+    uint startingBlock;
+    
     
     constructor(uint _reservePrice, uint _minIcrement, uint _buyoutPrice, uint _minBlocks, address payable _beneficiary) public payable{
         reservePrice = _reservePrice;
@@ -27,6 +32,7 @@ contract englishAuction {
         buyoutPrice = _buyoutPrice * 1 wei;
         minBlocks = _minBlocks;
         beneficiary = _beneficiary;
+        startingBlock = uint(block.number);
     }
     
     function acquistoDiretto() public payable{
@@ -39,6 +45,24 @@ contract englishAuction {
         ended = true;
         beneficiary.transfer(buyoutPrice);
         
+    }
+    
+    
+    function bid() public payable{
+        require(!ended, "fine asta");
+        require(msg.value > reservePrice);
+        require(msg.value > highestBid + minIcrement);
+        
+        if(startingBlock + minBlocks > uint(block.number)){
+            ended = true;
+        }
+        else{
+            highestBid = msg.value;
+            highestBidder = msg.sender;
+            if(!buyoutEnded){
+                buyoutEnded = true;
+            }
+        }
     }
     
 }
