@@ -43,9 +43,6 @@ contract englishAuction {
         buyoutPrice = _buyoutPrice * 1 wei;
         minBlocks = _minBlocks;
         beneficiary = _beneficiary;
-        startingBlock = uint(block.number);
-        highestBid = 0;
-        highestBidder = address(0);
     }
     
     
@@ -54,7 +51,7 @@ contract englishAuction {
         require(!ended, "Asta terminata");
         require(buyoutEnded == false, "Non acquistabile direttamente");
         //require(msg.sender.balance < buyoutPrice, "Balance non sufficiente");
-        require(msg.value == buyoutPrice, "diversi");
+        require(msg.value == buyoutPrice, "Valore differente");
         
         emit AuctionEnded(msg.sender, msg.value);
         ended = true;
@@ -110,7 +107,7 @@ contract englishAuction {
     
     
     function finalize()  external payable {
-        require(ended == false, "asta terminata");
+        require(ended == false, "Asta terminata");
         require(msg.sender == highestBidder || msg.sender == beneficiary, "Non vincitore o beneficiary");
         require(startingBlock + minBlocks < uint(block.number), "Blocco non sufficiente");
         
