@@ -97,9 +97,19 @@ contract englishAuction {
         
     }
     
+    /*
+    modifier onlyAuthorized() {
+        _isAddressAuthorized();
+        _;
+    }
+
+    function _isAddressAuthorized() internal view {
+        require(msg.sender == beneficiary || msg.sender == highestBidder, "Non vincitore o beneficiary");
+    }
+    */
     
     
-    function finalize() public payable{
+    function finalize()  external payable {
         require(ended == false, "asta terminata");
         require(msg.sender == highestBidder || msg.sender == beneficiary, "Non vincitore o beneficiary");
         require(startingBlock + minBlocks < uint(block.number), "Blocco non sufficiente");
