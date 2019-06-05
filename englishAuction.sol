@@ -12,19 +12,27 @@ contract englishAuction {
     // Numero di blocchi che devono passare prima di terminare l'asta
     uint public minBlocks;
     
+    // Indirizzo che ha fatto l'offerta più alta e offerta più alta ricevuta
     uint public highestBid;
-    address public highestBidder;
+    address payable public highestBidder;
     
+    // Indirizzo che ha comprato direttamente senza asta
     address public buyer;
+    // Creatore dell'asta
     address payable public beneficiary;
     
-    bool buyoutEnded = false;
+    // Booleano usato per capire se l'asta è terminata o no
     bool ended = false;
+    // booleano per capire se è stato fatto l'acquisto diretto senza asta
+    bool buyoutEnded = false;
     
-    uint public val = 0;
-    
+    // Blocco in cui è stata eseguita l'ultima offerta
     uint startingBlock;
     
+    // Due eventi, uno per dire che ho aumentato l'offerta e uno per indicare che l'asta è terminata
+    event HighestBidIncreased(address bidder, uint amount);
+    event AuctionEnded(address winner, uint amount);
+    event Refunded(address refundedAddress, uint amount);
     
     constructor(uint _reservePrice, uint _minIcrement, uint _buyoutPrice, uint _minBlocks, address payable _beneficiary) public payable{
         reservePrice = _reservePrice;
@@ -35,34 +43,57 @@ contract englishAuction {
         startingBlock = uint(block.number);
     }
     
+    
     function acquistoDiretto() public payable{
-        require(!buyoutEnded, "fine buyout");
-        require(!ended, "fine asta");
+        require(!ended, "Asta terminata");
+        require(buyoutEnded == false, "Non acquistabile direttamente");
+        //require(msg.sender.balance < buyoutPrice, "Balance non sufficiente");
         require(msg.value == buyoutPrice, "diversi");
-            
-        buyer = msg.sender;
-        buyoutEnded = true;
+        
+        emit AuctionEnded(msg.sender, msg.value);
         ended = true;
+        
         beneficiary.transfer(buyoutPrice);
         
     }
     
     
     function bid() public payable{
-        require(!ended, "fine asta");
-        require(msg.value > reservePrice);
-        require(msg.value > highestBid + minIcrement);
-        
-        if(startingBlock + minBlocks > uint(block.number)){
-            ended = true;
+        require(!ended, "Asta Terminata");
+        require(msg.sender.balance > msg.value, "Balance non sufficiente");
+
+        if(buyoutEnded == false){
+            // Prima offerta che arriva, in questo caso posso fare un'offerta pari al minimo
+            require(msg.value >= reservePrice);
+            buyoutEnded = true;
         }
         else{
-            highestBid = msg.value;
-            highestBidder = msg.sender;
-            if(!buyoutEnded){
-                buyoutEnded = true;
+            // offerte successive alla prima, in questo caso devo fare un'offerta maggiore della precedente del minimo incremento
+            // una volta ricevuta l'offerta devo anche restituire i soldi al precedente bidder
+            require(startingBlock + minBlocks < uint(block.number), "Impossibile fare nuove offerte");
+            require(msg.value > highestBid + minIcrement, "Incremento non sufficiente");
+            
+            if(highestBidder.send(highestBid) == true){
+                emit Refunded(highestBidder, highestBid);
             }
         }
+        
+        emit HighestBidIncreased(msg.sender, msg.value);
+        highestBid = msg.value;
+        highestBidder = msg.sender;
+        startingBlock = uint(block.number);
+    
+    }
+    
+    function finalize() public payable{
+        require(ended == false, "asta terminata");
+        require(startingBlock + minBlocks < uint(block.number), "Blocco non sufficiente");
+        require(msg.sender == highestBidder || msg.sender == beneficiary);
+        
+        ended = true;
+        emit AuctionEnded(highestBidder, highestBid);
+        beneficiary.transfer(highestBid);
+        
     }
     
 }
