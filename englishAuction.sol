@@ -70,8 +70,8 @@ contract englishAuction {
         else{
             // offerte successive alla prima, in questo caso devo fare un'offerta maggiore della precedente del minimo incremento
             // una volta ricevuta l'offerta devo anche restituire i soldi al precedente bidder
-            require(startingBlock + minBlocks < uint(block.number), "Impossibile fare nuove offerte");
-            require(msg.value > highestBid + minIcrement, "Incremento non sufficiente");
+            require(startingBlock + minBlocks > uint(block.number), "Impossibile fare nuove offerte");
+            require(msg.value >= highestBid + minIcrement, "Incremento non sufficiente");
             
             if(highestBidder.send(highestBid) == true){
                 emit Refunded(highestBidder, highestBid);
@@ -87,8 +87,9 @@ contract englishAuction {
     
     function finalize() public payable{
         require(ended == false, "asta terminata");
+        require(msg.sender == highestBidder || msg.sender == beneficiary, "Non vincitore o beneficiary");
         require(startingBlock + minBlocks < uint(block.number), "Blocco non sufficiente");
-        require(msg.sender == highestBidder || msg.sender == beneficiary);
+        
         
         ended = true;
         emit AuctionEnded(highestBidder, highestBid);
