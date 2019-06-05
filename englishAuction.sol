@@ -66,6 +66,11 @@ contract englishAuction {
             // Prima offerta che arriva, in questo caso posso fare un'offerta pari al minimo
             require(msg.value >= reservePrice);
             buyoutEnded = true;
+            
+            highestBid = msg.value;
+            highestBidder = msg.sender;
+            startingBlock = uint(block.number);
+            emit HighestBidIncreased(highestBidder, highestBid);
         }
         else{
             // offerte successive alla prima, in questo caso devo fare un'offerta maggiore della precedente del minimo incremento
@@ -73,16 +78,22 @@ contract englishAuction {
             require(startingBlock + minBlocks > uint(block.number), "Impossibile fare nuove offerte");
             require(msg.value >= highestBid + minIcrement, "Incremento non sufficiente");
             
-            if(highestBidder.send(highestBid) == true){
-                emit Refunded(highestBidder, highestBid);
-            }
+            uint value = highestBid;
+            address payable receiver = highestBidder;
+            highestBid = 0;
+            emit Refunded(receiver, value);
+            
+            highestBid = msg.value;
+            highestBidder = msg.sender;
+            startingBlock = uint(block.number);
+            emit HighestBidIncreased(highestBidder, highestBid);
+            
+            receiver.transfer(value);
+            
         }
+       
         
-        emit HighestBidIncreased(msg.sender, msg.value);
-        highestBid = msg.value;
-        highestBidder = msg.sender;
-        startingBlock = uint(block.number);
-    
+        
     }
     
     function finalize() public payable{
