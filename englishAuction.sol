@@ -35,14 +35,17 @@ contract englishAuction {
     event Refunded(address refundedAddress, uint amount);
     event NoBid();
     
+    string title;
+    string URL;
     
-    
-    constructor(uint _reservePrice, uint _minIcrement, uint _buyoutPrice, uint _minBlocks, address payable _beneficiary) public payable{
+    constructor(string memory _title, string memory _URL, uint _reservePrice, uint _minIcrement, uint _buyoutPrice, uint _minBlocks, address payable _beneficiary) public payable{
         reservePrice = _reservePrice;
         minIcrement = _minIcrement;
         buyoutPrice = _buyoutPrice * 1 wei;
         minBlocks = _minBlocks;
         beneficiary = _beneficiary;
+        title = _title;
+        URL = _URL;
     }
     
     
