@@ -14,11 +14,9 @@ contract Vickrey {
     
     uint bidTimeStart;
     uint bidTime;
-    
-    uint withdrawalTimeStart;
+
     uint withdrawalTime;
     
-    uint bidOpeningTimeStart;
     uint bidOpeningTime;
     
     uint highestBid;
@@ -30,10 +28,14 @@ contract Vickrey {
     // Memorizzo la coppia (indirizzo, hash offerta)
     mapping (address => bytes32) bids;
     
+    // Un booleano per capire se l'asta è iniziata e uno per capire se è finita
     bool started = false;
     bool ended = false;
     
-    constructor(uint _reservePrice, uint _bidTime, uint _withdrawalTime, uint _bidOpeningTime, uint _bidDeposit) public payable{
+    string title;
+    string URL;
+    
+    constructor(string memory _title, string memory _URL, uint _reservePrice, uint _bidTime, uint _withdrawalTime, uint _bidOpeningTime, uint _bidDeposit) public payable{
         require(_reservePrice > 0, "reserve > 0");
         reservePrice = _reservePrice;
         auctioneer = msg.sender;
@@ -43,6 +45,8 @@ contract Vickrey {
         bidDeposit = _bidDeposit;
         refundPrice = _bidDeposit / 2;
         secondHighestBid = reservePrice;
+        title = _title;
+        URL = _URL;
     }
     
     modifier only_when_bidPhaseEnded(){
@@ -61,6 +65,7 @@ contract Vickrey {
         require(started == true, "asta non iniziata"); _;
     }
     
+    
     /*
         Inizio dell'asta, solamente il creatore dell'asta può avviarla
     */
@@ -70,6 +75,7 @@ contract Vickrey {
         started = true;
         bidTimeStart = block.number;
     }
+    
     
     /*
         Aggiunta di una nuova offerta
@@ -126,7 +132,6 @@ contract Vickrey {
         }
         
     }
-    
    
     /*
         Funzione che chiude l'asta, viene chiamata solamente da chi ha creato 
