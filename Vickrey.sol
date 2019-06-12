@@ -1,7 +1,9 @@
 pragma solidity ^0.5.1;
+import "github.com/OpenZeppelin/zeppelin-solidity/contracts/math/SafeMath.sol";
 
 
 contract Vickrey {
+    using SafeMath for uint;
     
     // Prezzo minimo dell'asta
     uint reservePrice;
@@ -10,18 +12,22 @@ contract Vickrey {
     // Prezzo che viene restituito in caso di ritiro
     uint refundPrice;
     // Creatore dell'asta
-    address auctioneer;
+    address payable auctioneer;
     
+    // blocco in cui inizia l'asta e durata della bid Phase
     uint bidTimeStart;
     uint bidTime;
 
+    // tempo (in blocchi) della withdrawal phase
     uint withdrawalTime;
     
+    // tempo (in blocchi) della fase di apertura delle offerte
     uint bidOpeningTime;
     
+    // variabili usate per memorizzare l'offerta più alta e chi l'ha presentata
+    // stesso discorso con la seconda offerta più alta.
     uint highestBid;
     uint secondHighestBid;
-    
     address payable highestBidder;
     address payable secondhighestBidder;
     
@@ -32,9 +38,23 @@ contract Vickrey {
     bool started = false;
     bool ended = false;
     
+    // Nome del prodotto che viene messo in vendita e URL di una foto
     string title;
     string URL;
     
+    /*
+        Parametri:
+        - _title = nome del prodotto che viene messo in vendita con l'asta
+        - _URL = url di una foto del prodotto
+        - _reservePrice = prezzo minimo che deve essere pagato
+        - _bidTime = tempo (misurato in numero di blocchi) della fase in cui è possibile
+        fare le offerte
+        - _withdrawalTime = tempo (misurato in numero di blocchi) della fase in cui è possibile
+        ritirare le offerte
+        - _bidOpeningTime = tempo (misurato in numero di blocchi) della fase in cui è possibile
+        aprire le "buste" con le offerte
+        - _bidDeposit = deposito che deve essere lasciato da chi fa un'offerta
+    */
     constructor(string memory _title, string memory _URL, uint _reservePrice, uint _bidTime, uint _withdrawalTime, uint _bidOpeningTime, uint _bidDeposit) public payable{
         require(_reservePrice > 0, "reserve > 0");
         reservePrice = _reservePrice;
@@ -43,46 +63,78 @@ contract Vickrey {
         withdrawalTime = _withdrawalTime;
         bidOpeningTime = _bidOpeningTime;
         bidDeposit = _bidDeposit;
-        refundPrice = _bidDeposit / 2;
+        // a refundPrice assegno la metà del _bidDeposit perchè quando ritiro l'offferta
+        // dobbiamo restituire la metà di quanto è stato lasciato come deposito. 
+        refundPrice = _bidDeposit.div(2);
         secondHighestBid = reservePrice;
         title = _title;
         URL = _URL;
     }
     
-    modifier only_when_bidPhaseEnded(){
-        require(block.number > bidTimeStart + bidTime, "bid Phase non termianta"); _;
+    // Controlla che l'asta sia stata avviata e che la fase di invio delle offerte non 
+    // sia ancora completata
+    modifier only_when_BidPhase(){
+        require(started == true, "Asta non iniziata");
+        require(block.number <= bidTimeStart.add(bidTime), "Bid Phase ended"); _;
     }
     
-    modifier only_when_withdrawalPhaseEnded(){
-        require(block.number > bidTimeStart + bidTime + withdrawalTime, "withdrawal Phase non terminata"); _;
+    // Controlla che la fase di invio delle offerte sia terminata, che siamo nella fase Withdrawal
+    // e che l'asta è stata avviata
+    modifier only_when_WithdrawalPhase(){
+        require(started == true, "Asta non iniziata");
+        require(block.number > bidTimeStart.add(bidTime), "Bid Phase non terminata");
+        require(block.number <= (bidTimeStart.add(bidTime)).add(withdrawalTime), "Withdrawal Phase terminata"); _;
+    }
+    
+    modifier only_when_openBid(){
+        require(started == true, "Asta non iniziata");
+        require(block.number > (bidTimeStart.add(bidTime)).add(withdrawalTime), "Withdrawal Phase non terminata");
+        require(block.number <= ((bidTimeStart.add(bidTime)).add(withdrawalTime)).add(bidOpeningTime), "Open Bid Phase terminata"); _;
+    }
+    
+     // Controlla che l'asta sia stata avviata
+    modifier only_when_auctionStarted(){
+        require(started == true, "asta non iniziata"); _;
+    }
+    
+    // Controlla che la funzione sia stata chiamata dal creatore dell'asta
+    modifier only_auctioneer(){
+        require(msg.sender == auctioneer, "non sei l'auctioneer"); _;
     }
     
     modifier only_when_openBidPhaseEnded(){
-        require(block.number > bidTimeStart + bidTime + withdrawalTime + bidOpeningTime, "Open BidPhase non terminata"); _;
-    }
-    
-    modifier only_when_auctionStarted(){
-        require(started == true, "asta non iniziata"); _;
+        require(started == true, "Asta non iniziata");
+        require(ended == false, "Asta terminata");
+        require(block.number > ((bidTimeStart.add(bidTime)).add(withdrawalTime)).add(bidOpeningTime), "Open Bid Phase non iniziata"); _;
     }
     
     
     /*
         Inizio dell'asta, solamente il creatore dell'asta può avviarla
     */
-    function openAuction() public{
-        require(msg.sender == auctioneer, "non sei l'auctioneer");
+    function openAuction() public only_auctioneer(){
         require(started == false);
         started = true;
         bidTimeStart = block.number;
     }
+
     
     
     /*
-        Aggiunta di una nuova offerta
+        Aggiunta di una nuova offerta, possiamo aggiungere l'offerta solamente dopo
+        che l'asta è stata avviata e solamente prima che inizi la fase di ritiro delle offerte.
+        Prima di far aggiungere una nuova offerta devo anche contorllare che il deposito
+        che viene inviato sia corretto.
+        Un utente può fare più di una offerta (modificando la precedente) lasciando solamente
+        una volta il deposito.
+        
+        Parametri:
+        - Hash dell'offerta che vogliamo inviare (Nonce + valore denaro da inviare)
     */
-    function addBid(bytes32 bid) public payable only_when_auctionStarted(){
-        require(block.number <= bidTimeStart + bidTime, "Bid Phase ended");
+    function addBid(bytes32 bid) public payable only_when_BidPhase(){
         require(msg.value == bidDeposit, "bidDeposit errato");
+        
+        // Se ho già fatto un'offerta restituisco il value inviato con questa transazione
         if(bids[msg.sender] == 0){
             bids[msg.sender] = bid;
         }
@@ -92,41 +144,74 @@ contract Vickrey {
         }
     }
     
+    
     /*
-        Ritoro dell'offerta, viene restituito metà del bidDeposit
-    */
-    function withdrawal(bytes32 bid) public only_when_bidPhaseEnded() only_when_auctionStarted(){
+        Ritiro dell'offerta, viene restituito metà del bidDeposit.
+        Questa funzione la posso chiamare solamente prima che finisca la fase di withdrawal e dopo
+        che è finita quella di invio delle offerte. Inoltre si controlla che l'utente che
+        chiede il rimborso abbia effettivamente inviato un'offerta.
         
+        Parametri:
+        - Hash dell'offerta che è stata precedentemente inviata
+    */
+    function withdrawal(bytes32 bid) public only_when_WithdrawalPhase{
         require(bid == bids[msg.sender], "Non puoi ritirare");
+        
         delete bids[msg.sender];
         msg.sender.transfer(refundPrice);
     }
     
-    function openBid(uint _nonce) public payable only_when_withdrawalPhaseEnded() only_when_auctionStarted(){
+    
+    /*
+        Apertura delle buste con le offerte. Questa funzione la posso chiamare
+        solamente dopo che sono finite le precedenti due fasi e prima che termini questa.
+        Devo controllare che l'hash che ho inviato quando ho fatto l'offerta sia lo stesso che 
+        calcolo qua usando il nonce e il valore che invio.
+        Devo controllare anche che la mia offerta sia maggiore del reservePrice.
+        Se ho fatto un'offerta minore del reservePrice perdo anche il deposito.
+        Parametri:
+        - Nonce usato quando abbiamo calcolato l'hash 
+    */
+    function openBid(uint _nonce) public payable only_when_openBid(){
         require(keccak256(abi.encode(_nonce, msg.value)) == bids[msg.sender], "Impossibile aprire");
-        require(msg.value >= reservePrice, "offerta < reservePrice");
+        
+        // Indirizzo a cui va inviato il rimborso
         address payable toRefund;
+        // rimborso da inviare
         uint val;
+        
+        // Caso in cui ho fatto l'offerta più alta, quella che era l'offerta più alta
+        // scala in seconda posizione e quella che era in seconda posizione verrà rimborsata insieme al deposito
         if(msg.value > highestBid){
             toRefund = secondhighestBidder;
-            val = secondHighestBid + bidDeposit;
+            val = secondHighestBid.add(bidDeposit);
             secondhighestBidder = highestBidder;
             secondHighestBid = highestBid;
             highestBid = msg.value;
             highestBidder = msg.sender;
         }
+        // Caso in cui faccio un'offerta che supera solamente la seconda, in questo caso 
+        // il precedente bidder viene rimborsato dell'offerta e del deposito.
         else if(msg.value > secondHighestBid){
             toRefund = secondhighestBidder;
-            val = secondHighestBid + bidDeposit;
+            val = secondHighestBid.add(bidDeposit);
             secondhighestBidder = msg.sender;
             secondHighestBid = msg.value;
         }
+        /* 
+            La mia offerta non supera la prima o la seconda quindi dovrò essere
+            rimborsato sia dell'offerta che del deposito. Qua ci finisco anche se l'offerta
+            non supera il reservePrice perchè inizialmente il reservePrice è fissato come 
+            seconda offerta più alta, quindi se non supero la seconda non supero nemmeno il reservePrice,
+            questo serve quando ad esempio abbiamo tutte le offerte sotto al reservePrice e non vogliamo
+            che la vendita avvenga comunque
+        */
         else{
             toRefund = msg.sender;
-            val = msg.value + bidDeposit;
+            val = msg.value.add(bidDeposit);
         }
         
-        
+        // Eseguo il rimborso 
         if(toRefund != address(0)){
             toRefund.transfer(val);
         }
@@ -135,18 +220,20 @@ contract Vickrey {
    
     /*
         Funzione che chiude l'asta, viene chiamata solamente da chi ha creato 
-        l'asta o da chi ha vinto. Serve per segnare l'asta come chiusa e anche per
+        l'asta o da chi ha vinto, solamente quando le fasi precedenti sono terminate. Serve per segnare l'asta come chiusa e anche per
         fare il rimborso a chi ha vinto.
     */
-    function finalize() public payable only_when_openBidPhaseEnded only_when_auctionStarted(){
-        
+    function finalize() public payable only_when_openBidPhaseEnded() {
         require(msg.sender == highestBidder || msg.sender == auctioneer, "Non hai i permessi");
         
         ended = true;
+        // Controlliamo che sia stata eseguita un'offerta valida.
         if(highestBidder != address(0)){
-            highestBidder.transfer(highestBid - secondHighestBid);
+            highestBidder.transfer(highestBid.sub(secondHighestBid));
         }
-        
+        if(address(this).balance != 0){
+            auctioneer.transfer(address(this).balance);
+        }
     }
     
     
