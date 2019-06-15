@@ -26,8 +26,8 @@ contract Vickrey {
     
     // variabili usate per memorizzare l'offerta più alta e chi l'ha presentata
     // stesso discorso con la seconda offerta più alta.
-    uint highestBid;
-    uint secondHighestBid;
+    uint public highestBid;
+    uint public secondHighestBid;
     address payable highestBidder;
     address payable secondhighestBidder;
     
@@ -105,7 +105,13 @@ contract Vickrey {
     modifier only_when_openBidPhaseEnded(){
         require(started == true, "Asta non iniziata");
         require(ended == false, "Asta terminata");
-        require(block.number > ((bidTimeStart.add(bidTime)).add(withdrawalTime)).add(bidOpeningTime), "Open Bid Phase non iniziata"); _;
+        require(block.number > ((bidTimeStart.add(bidTime)).add(withdrawalTime)).add(bidOpeningTime), "Open Bid Phase non terminata"); _;
+    }
+    
+    // Controlla che chi fa l'offerta abbia a disposizione un balance maggiore di 
+    // quanto offre
+    modifier balanceAvailable(uint price){
+        require(msg.sender.balance >= price, "Balance non sufficiente"); _;
     }
     
     
@@ -117,7 +123,10 @@ contract Vickrey {
         started = true;
         bidTimeStart = block.number;
     }
+    
+    event HighestBidIncreased(address bidder, address secondBidder);
 
+    event AuctionEnded(address winner, uint amount);
     
     
     /*
@@ -131,7 +140,7 @@ contract Vickrey {
         Parametri:
         - Hash dell'offerta che vogliamo inviare (Nonce + valore denaro da inviare)
     */
-    function addBid(bytes32 bid) public payable only_when_BidPhase(){
+    function addBid(bytes32 bid) public payable only_when_BidPhase() balanceAvailable(bidDeposit){
         require(msg.value == bidDeposit, "bidDeposit errato");
         
         // Se ho già fatto un'offerta restituisco il value inviato con questa transazione
@@ -172,7 +181,7 @@ contract Vickrey {
         Parametri:
         - Nonce usato quando abbiamo calcolato l'hash 
     */
-    function openBid(uint _nonce) public payable only_when_openBid(){
+    function openBid(uint _nonce) public payable only_when_openBid()  balanceAvailable(msg.value){
         require(keccak256(abi.encode(_nonce, msg.value)) == bids[msg.sender], "Impossibile aprire");
         
         // Indirizzo a cui va inviato il rimborso
@@ -180,15 +189,28 @@ contract Vickrey {
         // rimborso da inviare
         uint val;
         
-        // Caso in cui ho fatto l'offerta più alta, quella che era l'offerta più alta
-        // scala in seconda posizione e quella che era in seconda posizione verrà rimborsata insieme al deposito
-        if(msg.value > highestBid){
-            toRefund = secondhighestBidder;
-            val = secondHighestBid.add(bidDeposit);
-            secondhighestBidder = highestBidder;
-            secondHighestBid = highestBid;
-            highestBid = msg.value;
-            highestBidder = msg.sender;
+        
+        // Caso in cui supero l'highest Bid, devo vedere anche se è la prima offerta
+        // che lo supera o no, altrimenti rischio di azzerare il secondhighestBidder
+        if(msg.value > highestBid) {
+            // se è la prima offerta che supera l'highest Bidder non devo 
+            // rimborsare nessuno perchè il secondhighestBidder è il valore del 
+            // reservePrice
+            if(highestBid == 0){
+                highestBid = msg.value;
+                highestBidder = msg.sender;
+            }
+            // se invece sono offerte successive allora devo fare un rimborso 
+            else{
+                toRefund = secondhighestBidder;
+                val = secondHighestBid.add(bidDeposit);
+                secondhighestBidder = highestBidder;
+                secondHighestBid = highestBid;
+                highestBid = msg.value;
+                highestBidder = msg.sender;
+            }
+            
+            emit HighestBidIncreased(msg.sender, secondhighestBidder);
         }
         // Caso in cui faccio un'offerta che supera solamente la seconda, in questo caso 
         // il precedente bidder viene rimborsato dell'offerta e del deposito.
@@ -217,20 +239,31 @@ contract Vickrey {
         }
         
     }
+    
+    uint public balance;
    
     /*
         Funzione che chiude l'asta, viene chiamata solamente da chi ha creato 
         l'asta o da chi ha vinto, solamente quando le fasi precedenti sono terminate. Serve per segnare l'asta come chiusa e anche per
         fare il rimborso a chi ha vinto.
-    */
+    */  
     function finalize() public payable only_when_openBidPhaseEnded() {
         require(msg.sender == highestBidder || msg.sender == auctioneer, "Non hai i permessi");
         
+        emit AuctionEnded(highestBidder, secondHighestBid);
         ended = true;
+        
         // Controlliamo che sia stata eseguita un'offerta valida.
         if(highestBidder != address(0)){
-            highestBidder.transfer(highestBid.sub(secondHighestBid));
+            highestBidder.transfer((highestBid.sub(secondHighestBid)).add(bidDeposit));
         }
+        
+        if(secondhighestBidder != address(0)){
+            secondhighestBidder.transfer(secondHighestBid.add(bidDeposit));
+        }
+    
+        balance = address(this).balance;
+        // trasferisco il balance del contratto al creatore dell'asta 
         if(address(this).balance != 0){
             auctioneer.transfer(address(this).balance);
         }
