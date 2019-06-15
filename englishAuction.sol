@@ -1,6 +1,8 @@
-pragma solidity >=0.4.22;
+pragma solidity ^0.5.1;
+import "github.com/OpenZeppelin/zeppelin-solidity/contracts/math/SafeMath.sol";
 
 contract englishAuction {
+    using SafeMath for uint;
     
     // Offerta minima che deve essere fatta
     uint public reservePrice;
@@ -19,12 +21,15 @@ contract englishAuction {
     // Indirizzo che ha comprato direttamente senza asta
     address public buyer;
     // Creatore dell'asta
-    address payable beneficiary;
+    address payable auctioneer;
     
     // Booleano usato per capire se l'asta è terminata o no
     bool ended = false;
     // booleano per capire se è stato fatto l'acquisto diretto senza asta
     bool buyoutEnded = false;
+    
+    // usato per capire se l'asta è iniziata
+    bool started = false;
     
     // Blocco in cui è stata eseguita l'ultima offerta
     uint startingBlock;
@@ -38,12 +43,14 @@ contract englishAuction {
     string title;
     string URL;
     
-    constructor(string memory _title, string memory _URL, uint _reservePrice, uint _minIcrement, uint _buyoutPrice, uint _minBlocks, address payable _beneficiary) public payable{
+    constructor(string memory _title, string memory _URL, uint _reservePrice, uint _minIcrement, uint _buyoutPrice, uint _minBlocks) public payable{
+        require(_reservePrice > 0, "reserve > 0");
+        require(_buyoutPrice > 0, "buyoutPrice > 0");
         reservePrice = _reservePrice;
         minIcrement = _minIcrement;
         buyoutPrice = _buyoutPrice * 1 wei;
         minBlocks = _minBlocks;
-        beneficiary = _beneficiary;
+        auctioneer = msg.sender;
         title = _title;
         URL = _URL;
     }
@@ -62,7 +69,7 @@ contract englishAuction {
     // Controllo che tra l'ultima offerta e quella che provo a fare
     // non siano passati troppi blocchi
     modifier bidAvailable(){
-        require(startingBlock < startingBlock + minBlocks, "Impossibile fare altre offerte"); _;
+        require(startingBlock < startingBlock.add(minBlocks), "Impossibile fare altre offerte"); _;
     }
     
     // Controlla che chi fa l'offerta abbia a disposizione un balance maggiore di 
@@ -76,14 +83,35 @@ contract englishAuction {
         oppure quello che ha vinto l'asta.
     */
     modifier onlyAuthorized() {
-         require(msg.sender == beneficiary || msg.sender == highestBidder, "Non vincitore o beneficiary");
+         require(msg.sender == auctioneer || msg.sender == highestBidder, "Non vincitore o auctioneer");
         _;
     }
     
     modifier only_when_FinalizePhase(){
-        require(startingBlock + minBlocks < uint(block.number), "Blocco non sufficiente");
+        require(startingBlock.add(minBlocks) < uint(block.number), "Blocco non sufficiente");
         _;
     }
+    
+    // Controlla che la funzione sia stata chiamata dal creatore dell'asta
+    modifier only_auctioneer(){
+        require(msg.sender == auctioneer, "non sei l'auctioneer"); _;
+    }
+    
+     // Controllo che l'asta sia stata avviata
+    modifier only_when_started(){
+        require(started, "Asta non iniziata"); _;
+    }
+    
+    
+    /*
+        Inizio dell'asta, solamente il creatore dell'asta può avviarla
+    */
+    function openAuction() public only_auctioneer(){
+        require(started == false);
+        started = true;
+        
+    }
+    
 
     /*
         Funzione che permette di acquistare direttamente il prodotto senza 
@@ -96,14 +124,14 @@ contract englishAuction {
         
         Alla fine il valore che invio viene trasferito al creatore dell'asta.
     */
-    function acquistoDiretto() public payable only_notEnded() buyout_available() balanceAvailable(buyoutPrice){
+    function acquistoDiretto() public payable only_notEnded() buyout_available() balanceAvailable(buyoutPrice) only_when_started(){
         
         require(msg.value == buyoutPrice, "Valore differente");
         
         emit AuctionEnded(msg.sender, msg.value);
         ended = true;
-        
-        beneficiary.transfer(buyoutPrice);
+        buyer = msg.sender;
+        auctioneer.transfer(buyoutPrice);
         
     }
     
@@ -114,7 +142,7 @@ contract englishAuction {
         - chi invia l'offerta ha un balance maggiore di quello che offre
         - Se tra il bid precedente e il successivo non sono passati troppi blocchi
     */
-    function bid() public payable only_notEnded() balanceAvailable(msg.value){
+    function bid() public payable only_notEnded() balanceAvailable(msg.value) only_when_started(){
         
         // Prima offerta che arriva, in questo caso posso fare un'offerta pari al minimo
         // e non devo controllare che sia terminata la fase di bid
@@ -126,8 +154,8 @@ contract englishAuction {
         else{
             // offerte successive alla prima, in questo caso devo fare un'offerta maggiore della precedente più il minimo incremento
             // una volta ricevuta l'offerta devo anche restituire i soldi al precedente bidder
-            require(block.number <= startingBlock + minBlocks, "Impossibile fare altre offerte");
-            require(msg.value >= highestBid + minIcrement, "Incremento non sufficiente");
+            require(block.number <= startingBlock.add(minBlocks), "Impossibile fare altre offerte");
+            require(msg.value >= highestBid.add(minIcrement), "Incremento non sufficiente");
         }
         
         uint value = highestBid;
@@ -138,6 +166,7 @@ contract englishAuction {
         startingBlock = uint(block.number);
         emit HighestBidIncreased(highestBidder, highestBid);
         
+        // Serve l'if perchè alla prima offerta che ricevo non devo restituire soldi
         if(value != 0 && receiver != address(0)){
             receiver.transfer(value);
         }
@@ -153,12 +182,11 @@ contract englishAuction {
         Qua trasferisco i soldi che sono stati offerti al creatore del contratto e 
         termino l'asta emettendo anche un evento.
     */
-    function finalize() external payable only_notEnded() onlyAuthorized() only_when_FinalizePhase(){
-        
+    function finalize() external payable only_notEnded() onlyAuthorized() only_when_FinalizePhase() only_when_started(){
         ended = true;
         emit AuctionEnded(highestBidder, highestBid);
-        beneficiary.transfer(highestBid);
+        auctioneer.transfer(highestBid);
         
     }
-    
+
 }
