@@ -4,7 +4,7 @@ contract englishAuction {
     
     // Offerta minima che deve essere fatta
     uint public reservePrice;
-    // Incremento minimo rispetto ad una precedente Offerta
+    
     uint public minIcrement;
     // Prezzo per l'acquisto diretto senza asta
     uint public buyoutPrice;
@@ -29,7 +29,7 @@ contract englishAuction {
     // Blocco in cui è stata eseguita l'ultima offerta
     uint startingBlock;
     
-    // Due eventi, uno per dire che ho aumentato l'offerta e uno per indicare che l'asta è terminata
+    // Quattro eventi, uno per dire che ho aumentato l'offerta e uno per indicare che l'asta è terminata
     event HighestBidIncreased(address bidder, uint amount);
     event AuctionEnded(address winner, uint amount);
     event Refunded(address refundedAddress, uint amount);
@@ -48,12 +48,56 @@ contract englishAuction {
         URL = _URL;
     }
     
+    // Controllo che l'asta non sia terminata
+    modifier only_notEnded(){
+        require(!ended, "Asta terminata"); _;
+    }
     
+    // Controllo che sia ancora possibile acquistare il prodotto
+    // direttamente e senza fare l'asta
+    modifier buyout_available(){
+        require(buyoutEnded == false, "Non acquistabile direttamente"); _;
+    }
     
-    function acquistoDiretto() public payable{
-        require(!ended, "Asta terminata");
-        require(buyoutEnded == false, "Non acquistabile direttamente");
-        //require(msg.sender.balance < buyoutPrice, "Balance non sufficiente");
+    // Controllo che tra l'ultima offerta e quella che provo a fare
+    // non siano passati troppi blocchi
+    modifier bidAvailable(){
+        require(startingBlock < startingBlock + minBlocks, "Impossibile fare altre offerte"); _;
+    }
+    
+    // Controlla che chi fa l'offerta abbia a disposizione un balance maggiore di 
+    // quanto offre
+    modifier balanceAvailable(uint price){
+        require(msg.sender.balance >= price, "Balance non sufficiente"); _;
+    }
+    
+    /*
+        Controlla che il chiamante della funzione sia il creatore del contratto
+        oppure quello che ha vinto l'asta.
+    */
+    modifier onlyAuthorized() {
+         require(msg.sender == beneficiary || msg.sender == highestBidder, "Non vincitore o beneficiary");
+        _;
+    }
+    
+    modifier only_when_FinalizePhase(){
+        require(startingBlock + minBlocks < uint(block.number), "Blocco non sufficiente");
+        _;
+    }
+
+    /*
+        Funzione che permette di acquistare direttamente il prodotto senza 
+        dover svolgere l'asta pagando il buyoutPrice.
+        Può essere chiamata solamente se:
+        - l'asta non è terminata
+        - è ancora disponibile la possibilità di acquistare direttamente
+        - ho un balance sufficiente per acquistare
+        - Il valore di buyout è uguale a quello che invio
+        
+        Alla fine il valore che invio viene trasferito al creatore dell'asta.
+    */
+    function acquistoDiretto() public payable only_notEnded() buyout_available() balanceAvailable(buyoutPrice){
+        
         require(msg.value == buyoutPrice, "Valore differente");
         
         emit AuctionEnded(msg.sender, msg.value);
@@ -63,22 +107,26 @@ contract englishAuction {
         
     }
     
-    
-    
-    
-    function bid() public payable{
-        require(!ended, "Asta Terminata");
-        require(msg.sender.balance > msg.value, "Balance non sufficiente");
-
+    /*
+        Funzione che permette di eseguire un'offerta.
+        Viene eseguita se:
+        - l'asta non è già terminata
+        - chi invia l'offerta ha un balance maggiore di quello che offre
+        - Se tra il bid precedente e il successivo non sono passati troppi blocchi
+    */
+    function bid() public payable only_notEnded() balanceAvailable(msg.value){
+        
+        // Prima offerta che arriva, in questo caso posso fare un'offerta pari al minimo
+        // e non devo controllare che sia terminata la fase di bid
         if(buyoutEnded == false){
-            // Prima offerta che arriva, in questo caso posso fare un'offerta pari al minimo
+           
             require(msg.value >= reservePrice);
             buyoutEnded = true;
         }
         else{
-            // offerte successive alla prima, in questo caso devo fare un'offerta maggiore della precedente del minimo incremento
+            // offerte successive alla prima, in questo caso devo fare un'offerta maggiore della precedente più il minimo incremento
             // una volta ricevuta l'offerta devo anche restituire i soldi al precedente bidder
-            require(startingBlock + minBlocks > uint(block.number), "Impossibile fare nuove offerte");
+            require(block.number <= startingBlock + minBlocks, "Impossibile fare altre offerte");
             require(msg.value >= highestBid + minIcrement, "Incremento non sufficiente");
         }
         
@@ -91,38 +139,26 @@ contract englishAuction {
         emit HighestBidIncreased(highestBidder, highestBid);
         
         if(value != 0 && receiver != address(0)){
-            emit Refunded(receiver, value);
             receiver.transfer(value);
         }
         
     }
     
+    
     /*
-    modifier onlyAuthorized() {
-        _isAddressAuthorized();
-        _;
-    }
-
-    function _isAddressAuthorized() internal view {
-        require(msg.sender == beneficiary || msg.sender == highestBidder, "Non vincitore o beneficiary");
-    }
+        Funzione che può essere chiamata solamente se:
+        - l'asta non è già terminata
+        - solo dal vincitore o da chi ha creato l'asta
+        - solamente dopo che non posso fare altre offerte
+        Qua trasferisco i soldi che sono stati offerti al creatore del contratto e 
+        termino l'asta emettendo anche un evento.
     */
-    
-    
-    function finalize()  external payable {
-        require(ended == false, "Asta terminata");
-        require(msg.sender == highestBidder || msg.sender == beneficiary, "Non vincitore o beneficiary");
-        require(startingBlock + minBlocks < uint(block.number), "Blocco non sufficiente");
+    function finalize() external payable only_notEnded() onlyAuthorized() only_when_FinalizePhase(){
         
-        if(highestBid == 0){
-            ended = true;
-            emit NoBid();
-        }
-        else{
-            ended = true;
-            emit AuctionEnded(highestBidder, highestBid);
-            beneficiary.transfer(highestBid);
-        }
+        ended = true;
+        emit AuctionEnded(highestBidder, highestBid);
+        beneficiary.transfer(highestBid);
+        
     }
     
 }
