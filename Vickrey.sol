@@ -240,7 +240,7 @@ contract Vickrey {
         
     }
     
-    uint public balance;
+
    
     /*
         Funzione che chiude l'asta, viene chiamata solamente da chi ha creato 
@@ -258,11 +258,12 @@ contract Vickrey {
             highestBidder.transfer((highestBid.sub(secondHighestBid)).add(bidDeposit));
         }
         
+        // Restituisco quanto offerto più il bidDeposit al secondo classificato
         if(secondhighestBidder != address(0)){
             secondhighestBidder.transfer(secondHighestBid.add(bidDeposit));
         }
     
-        balance = address(this).balance;
+       
         // trasferisco il balance del contratto al creatore dell'asta 
         if(address(this).balance != 0){
             auctioneer.transfer(address(this).balance);
