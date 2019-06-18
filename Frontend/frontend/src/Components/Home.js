@@ -1,13 +1,50 @@
 import React from "react";
 import "bulma/css/bulma.css";
 import TileAsta from "./TileAsta";
+import ParticleComponent from "./Particles";
 
 class Contact extends React.Component {
+	constructor(props) {
+		super(props);
+		this.state = {
+			mounted: false,
+			width: "",
+			heigth: ""
+		};
+	}
+
+	updateDimensions() {
+		var tmp = document.getElementById("cnt");
+		this.setState({
+			mounted: true,
+			width: tmp.offsetWidth,
+			heigth: tmp.offsetHeight
+		});
+	}
+
+	componentDidMount() {
+		var tmp = document.getElementById("cnt");
+		this.setState({
+			mounted: true,
+			width: tmp.offsetWidth,
+			heigth: tmp.offsetHeight
+		});
+		window.addEventListener("resize", this.updateDimensions.bind(this));
+	}
+
 	render() {
 		return (
 			<div>
-				<section className="hero is-medium is-primary is-bold">
-					<div className="hero-body">
+				<div className="hero is-medium is-primary is-bold">
+					{this.state.mounted ? (
+						<ParticleComponent
+							heigth={this.state.heigth}
+							width={this.state.width}
+						/>
+					) : (
+						<div />
+					)}
+					<div id="cnt" className="hero-body">
 						<div className="container">
 							<div margin="0">
 								<h1 className="title is-1">Benvenuto!</h1>
@@ -37,14 +74,15 @@ class Contact extends React.Component {
 							</div>
 						</div>
 					</div>
-				</section>
+				</div>
 				<br />
+
 				<div>
 					<div style={{ textAlign: "center" }}>
 						<h1 className="title is-2">Aste in corso</h1>
 					</div>
 				</div>
-				<div>
+				<div style={{ margin: 10 }}>
 					<TileAsta
 						auctionData={[
 							{ Title: "Test", Url: "Ciao" },
