@@ -1,6 +1,18 @@
 pragma solidity ^0.5.1;
 import "node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol";
 
+contract StorageInterface{
+    
+    function addContract(address creator, address contratto) public;
+    
+    function removeContract(address contr) public;
+    
+    function getAllContracts() public view returns(address[] memory, address[] memory);
+    
+}
+
+
+
 contract englishAuction {
     using SafeMath for uint;
     
@@ -62,6 +74,13 @@ contract englishAuction {
         auctioneer = msg.sender;
         title = _title;
         URL = _URL;
+        require(addToStorage(msg.sender, address(this)));
+    }
+    
+    function addToStorage(address sender, address contractAddress) public returns(bool success){
+        StorageInterface s = StorageInterface(0x1415Fb065166f3d19CeC9ff438BbF0b0FFC3B254);
+        s.addContract(sender, contractAddress);
+        return true;
     }
     
     // Controllo che l'asta non sia terminata

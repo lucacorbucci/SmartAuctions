@@ -10,6 +10,8 @@
   "license": "ISC",
   "dependencies": {
     "openzeppelin-solidity": "^2.3.0",
+    "react-modal": "^3.8.1",
+    "solc": "^0.5.9",
     "truffle": "^5.0.22"
   }
 }
