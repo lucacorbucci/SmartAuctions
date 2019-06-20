@@ -2,6 +2,8 @@ import React from "react";
 import "bulma/css/bulma.css";
 import TileAsta from "./TileAsta";
 import ParticleComponent from "./Particles";
+import Web3 from "web3";
+import { ABI_STORAGE, ADDRESS_STORAGE } from "../Ethereum/config.js";
 
 class Contact extends React.Component {
 	constructor(props) {
@@ -9,7 +11,8 @@ class Contact extends React.Component {
 		this.state = {
 			mounted: false,
 			width: "",
-			heigth: ""
+			heigth: "",
+			auctionData: []
 		};
 	}
 
@@ -20,6 +23,35 @@ class Contact extends React.Component {
 			width: tmp.offsetWidth,
 			heigth: tmp.offsetHeight
 		});
+	}
+
+	componentWillMount() {
+		const web3 = new Web3(Web3.givenProvider || "http://localhost:8545");
+
+		const storageContract = new web3.eth.Contract(ABI_STORAGE, ADDRESS_STORAGE);
+		var res = {};
+		var that = this;
+		storageContract.methods
+			.getAllContracts()
+			.call({ from: this.state.account })
+			.then(function(result) {
+				var mapping = [];
+				var length = result[0].length;
+				console.log(length);
+				for (var i = 0; i < length; i++) {
+					var tmp = {
+						openAuctions_Owner: result[0][i],
+						openAuctions_ContractAddress: result[1][i],
+						openAuctions_Url: result[2][i],
+						openAuctions_Title: result[3][i]
+					};
+					mapping.push(tmp);
+				}
+				console.log(mapping);
+				that.setState({
+					auctionData: mapping
+				});
+			});
 	}
 
 	componentDidMount() {
@@ -83,19 +115,7 @@ class Contact extends React.Component {
 					</div>
 				</div>
 				<div style={{ margin: 10 }}>
-					<TileAsta
-						auctionData={[
-							{ Title: "Test", Url: "Ciao" },
-							{ Title: "Test2", Url: "Ciao2" },
-							{ Title: "Test3", Url: "Ciao3" },
-							{ Title: "Test4", Url: "Ciao4" },
-							{ Title: "Test5", Url: "Ciao5" },
-							{ Title: "Test6", Url: "Ciao6" },
-							{ Title: "Test7", Url: "Ciao6" },
-							{ Title: "Test8", Url: "Ciao6" },
-							{ Title: "Test8", Url: "Ciao6" }
-						]}
-					/>
+					<TileAsta auctionData={this.state.auctionData} />
 				</div>
 			</div>
 		);

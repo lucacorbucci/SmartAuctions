@@ -1,6 +1,15 @@
 pragma solidity ^0.5.1;
 import "node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol";
 
+contract StorageInterface{
+    
+    function addContract(address creator, address contratto, string memory _url, string memory _titolo, uint tipo) public;
+    
+    function removeContract(address contr) public;
+    
+    function getAllContracts() public view returns(address[] memory, address[] memory);
+    
+}
 
 contract Vickrey {
     using SafeMath for uint;
@@ -69,6 +78,13 @@ contract Vickrey {
         secondHighestBid = reservePrice;
         title = _title;
         URL = _URL;
+        require(addToStorage(msg.sender, address(this)));
+    }
+    
+    function addToStorage(address sender, address contractAddress) public returns(bool success){
+        StorageInterface s = StorageInterface(0x68Add98aF4952F1F996a220259716c52F43c8dC1);
+        s.addContract(sender, contractAddress, URL, title, 1);
+        return true;
     }
     
     // Controlla che l'asta sia stata avviata e che la fase di invio delle offerte non 
@@ -293,6 +309,10 @@ contract Vickrey {
     */
     function getDeposit() public view returns(uint){
         return bidDeposit;
+    }
+
+    function getAllData() public view returns(uint, uint, uint, uint, uint, uint, uint, uint, bool, bool){
+        return (highestBid, secondHighestBid, bidTimeStart, bidTime, withdrawalTime, bidOpeningTime, bidDeposit, reservePrice, ended, started);
     }
  
 }

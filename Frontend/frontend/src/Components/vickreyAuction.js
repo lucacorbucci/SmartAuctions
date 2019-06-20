@@ -1,38 +1,23 @@
 import React from "react";
 import "bulma/css/bulma.css";
 import Web3 from "web3";
-import {
-	ENGLISH_DATA,
-	ENGLISH_ABI,
-	ABI_STORAGE,
-	ADDRESS_STORAGE
-} from "../Ethereum/config.js";
+import { VICKREY_DATA, VICKREY_ABI } from "../Ethereum/config.js";
 import Modal from "react-modal";
 
-const customStyles = {
-	content: {
-		top: "50%",
-		left: "50%",
-		right: "auto",
-		bottom: "auto",
-		marginRight: "-50%",
-		transform: "translate(-50%, -50%)"
-	}
-};
-
-class Contact extends React.Component {
+class VickreyAuction extends React.Component {
 	constructor(props) {
 		super(props);
 		this.state = {
 			account: "",
 			contractAddress: "",
-			englishAuction: "",
+			vickreyAuction: "",
 			Nome: "",
 			url: "",
 			baseAsta: "",
-			minIncr: "",
-			acquistoDiretto: "",
-			numBlocks: "",
+			bidPhaseLength: "",
+			withdrawalPhaseLength: "",
+			bidOpeningPhaseLength: "",
+			bidDeposit: "",
 			contractCreated: false
 		};
 		this.handleClick = this.handleClick.bind(this);
@@ -47,9 +32,10 @@ class Contact extends React.Component {
 			Nome: "",
 			url: "",
 			baseAsta: "",
-			minIncr: "",
-			acquistoDiretto: "",
-			numBlocks: ""
+			bidPhaseLength: "",
+			withdrawalPhaseLength: "",
+			bidOpeningPhaseLength: "",
+			bidDeposit: ""
 		});
 	}
 
@@ -57,25 +43,27 @@ class Contact extends React.Component {
 		console.log(this.state.Nome);
 		console.log(this.state.url);
 		console.log(this.state.baseAsta);
-		console.log(this.state.minIncr);
-		console.log(this.state.acquistoDiretto);
-		console.log(this.state.numBlocks);
+		console.log(this.state.bidPhaseLength);
+		console.log(this.state.withdrawalPhaseLength);
+		console.log(this.state.bidOpeningPhaseLength);
+		console.log(this.state.bidDeposit);
 
 		const web3 = new Web3(Web3.givenProvider || "http://localhost:8545");
 		const accounts = await web3.eth.getAccounts();
 		const address = accounts[0];
 
-		const contract = new web3.eth.Contract(ENGLISH_ABI);
+		const contract = new web3.eth.Contract(VICKREY_ABI);
 		contract
 			.deploy({
-				data: ENGLISH_DATA,
+				data: VICKREY_DATA,
 				arguments: [
 					this.state.Nome,
 					this.state.url,
 					this.state.baseAsta,
-					this.state.minIncr,
-					this.state.acquistoDiretto,
-					this.state.numBlocks
+					this.state.bidPhaseLength,
+					this.state.withdrawalPhaseLength,
+					this.state.bidOpeningPhaseLength,
+					this.state.bidDeposit
 				]
 			})
 			.send({
@@ -86,7 +74,7 @@ class Contact extends React.Component {
 
 			.on("confirmation", (confirmationNumber, receipt) => {
 				const newContract = new web3.eth.Contract(
-					ENGLISH_ABI,
+					VICKREY_ABI,
 					receipt.contractAddress
 				);
 
@@ -94,10 +82,10 @@ class Contact extends React.Component {
 				this.setState({
 					contractAddress: receipt.contractAddress,
 					account: address,
-					englishAuction: newContract,
+					vickreyAuction: newContract,
 					contractCreated: true
 				});
-				console.log(this.state.englishAuction);
+				console.log(this.state.vickreyAuction);
 			});
 
 		this.cancel();
@@ -114,7 +102,7 @@ class Contact extends React.Component {
 	}
 
 	startAuction() {
-		this.state.englishAuction.methods
+		this.state.vickreyAuction.methods
 			.openAuction()
 			.send({ from: this.state.account })
 			.on("confirmation", (confirmationNumber, receipt) => {
@@ -135,7 +123,7 @@ class Contact extends React.Component {
 				<section className="hero is-primary is-bold">
 					<div className="hero-body">
 						<div className="container">
-							<h1 className="title is-2">Crea una nuova asta inglese</h1>
+							<h1 className="title is-2">Crea una nuova asta Vickrey</h1>
 						</div>
 					</div>
 				</section>
@@ -226,38 +214,42 @@ class Contact extends React.Component {
 						</div>
 
 						<div className="field">
-							<label className="label">Valore minimo dell'incremento</label>
-							<div className="control">
-								<input
-									className="input"
-									type="text"
-									name="minIncr"
-									placeholder="Esempio: 1000000000000000000"
-									value={this.state.minIncr}
-									onChange={this.handleInputChange}
-								/>
-							</div>
-							<p className="help is-danger">
-								Importante: Il prezzo va specificato in Wei
-							</p>
-						</div>
-
-						<div className="field">
 							<label className="label">
-								Prezzo del prodotto per acquisto diretto
+								Durata della fase di invio delle offerte
 							</label>
 							<div className="control">
 								<input
 									className="input"
 									type="text"
-									name="acquistoDiretto"
-									placeholder="Esempio: 1000000000000000000"
-									value={this.state.acquistoDiretto}
+									name="bidPhaseLength"
+									placeholder="Esempio: 10"
+									value={this.state.bidPhaseLength}
 									onChange={this.handleInputChange}
 								/>
 							</div>
-							<p className="help is-danger">
-								Importante: Il prezzo va specificato in Wei
+							<p className="help ">
+								Inserire il numero di blocchi che indicano il periodo in cui
+								potranno essere inviate nuove offerte
+							</p>
+						</div>
+
+						<div className="field">
+							<label className="label">
+								Numero di blocchi per la fase di ritiro delle offerte
+							</label>
+							<div className="control">
+								<input
+									className="input"
+									type="text"
+									name="withdrawalPhaseLength"
+									placeholder="Esempio: 10"
+									value={this.state.withdrawalPhaseLength}
+									onChange={this.handleInputChange}
+								/>
+							</div>
+							<p className="help ">
+								Inserire il numero di blocchi che indicano il periodo in cui
+								possiamo ritirare l'offerta fatta
 							</p>
 						</div>
 
@@ -269,17 +261,37 @@ class Contact extends React.Component {
 								<input
 									className="input"
 									type="text"
-									name="numBlocks"
+									name="bidOpeningPhaseLength"
 									placeholder="Esempio: 10"
-									value={this.state.numBlocks}
+									value={this.state.bidOpeningPhaseLength}
 									onChange={this.handleInputChange}
 								/>
 							</div>
 							<p className="help ">
-								Inserisci il numero di blocchi senza nuove offerte che dovranno
-								passare prima di decretare il vincitore
+								Inserire il numero di blocchi che indicano la lunghezza della
+								fase di apertura delle "buste"
 							</p>
 						</div>
+
+						<div className="field">
+							<label className="label">
+								Deposito da inviare insieme all'offerta
+							</label>
+							<div className="control">
+								<input
+									className="input"
+									type="text"
+									name="bidDeposit"
+									placeholder="Esempio: 1000000000000000000"
+									value={this.state.bidDeposit}
+									onChange={this.handleInputChange}
+								/>
+							</div>
+							<p className="help is-danger">
+								Importante: Il prezzo va specificato in Wei
+							</p>
+						</div>
+
 						<br />
 						<div className="field is-grouped">
 							<div className="control">
@@ -308,4 +320,4 @@ class Contact extends React.Component {
 		);
 	}
 }
-export default Contact;
+export default VickreyAuction;

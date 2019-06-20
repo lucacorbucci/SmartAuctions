@@ -1,15 +1,17 @@
 pragma solidity ^0.5.1;
 import "node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol";
+pragma experimental ABIEncoderV2;
 
 contract StorageInterface{
     
-    function addContract(address creator, address contratto) public;
+    function addContract(address creator, address contratto, string memory _url, string memory _titolo, uint tipo) public;
     
     function removeContract(address contr) public;
     
     function getAllContracts() public view returns(address[] memory, address[] memory);
     
 }
+
 
 
 
@@ -25,9 +27,10 @@ contract englishAuction {
     
     // Numero di blocchi che devono passare prima di terminare l'asta
     uint public minBlocks;
+
     
     // Indirizzo che ha fatto l'offerta più alta e offerta più alta ricevuta
-    uint public highestBid;
+    uint public highestBid=0;
     address payable public highestBidder;
     
     // Indirizzo che ha comprato direttamente senza asta
@@ -78,8 +81,8 @@ contract englishAuction {
     }
     
     function addToStorage(address sender, address contractAddress) public returns(bool success){
-        StorageInterface s = StorageInterface(0x1415Fb065166f3d19CeC9ff438BbF0b0FFC3B254);
-        s.addContract(sender, contractAddress);
+        StorageInterface s = StorageInterface(0x68Add98aF4952F1F996a220259716c52F43c8dC1);
+        s.addContract(sender, contractAddress, URL, title, 0);
         return true;
     }
     
@@ -238,5 +241,12 @@ contract englishAuction {
     function getMinIncrement() public view returns(uint){
         return minIcrement;
     }
+
+    function getAllData() public view returns(uint, uint, uint, uint, bool, bool){
+        
+        return (minIcrement, highestBid, buyoutPrice, reservePrice, ended, buyoutEnded);
+    }
+
+
     
 }

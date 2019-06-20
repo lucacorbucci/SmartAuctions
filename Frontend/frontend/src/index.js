@@ -8,7 +8,10 @@ import Home from "./Components/Home";
 import AsteConcluse from "./Components/asteConcluse";
 import Regolamento from "./Components/Regolamento";
 import AstaInglese from "./Components/englishAuction";
+import AstaVickrey from "./Components/vickreyAuction";
+
 import Footer from "./Components/Footer";
+import AddBid from "./Components/AddBid";
 
 const routing = (
 	<Router>
@@ -21,6 +24,9 @@ const routing = (
 			<Route path="/asteconcluse" component={AsteConcluse} />
 			<Route path="/regolamento" component={Regolamento} />
 			<Route path="/addAstaInglese" component={AstaInglese} />
+			<Route path="/addAstaVickrey" component={AstaVickrey} />
+
+			<Route path="/addBid/:contractAddress/:Titolo/" component={AddBid} />
 			<Route path="/" component={Footer} />
 		</div>
 	</Router>
