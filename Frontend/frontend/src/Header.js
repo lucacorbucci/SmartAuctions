@@ -29,7 +29,7 @@ class App extends Component {
 	};
 
 	render() {
-		var links = ["/", "asteconcluse", "regolamento"];
+		var links = ["/", "/asteconcluse", "/regolamento"];
 		var menuItems = ["Home", "Aste concluse", "Regolamento"];
 		return (
 			<div>

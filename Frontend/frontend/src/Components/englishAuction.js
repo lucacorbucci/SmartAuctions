@@ -7,18 +7,6 @@ import {
 	ABI_STORAGE,
 	ADDRESS_STORAGE
 } from "../Ethereum/config.js";
-import Modal from "react-modal";
-
-const customStyles = {
-	content: {
-		top: "50%",
-		left: "50%",
-		right: "auto",
-		bottom: "auto",
-		marginRight: "-50%",
-		transform: "translate(-50%, -50%)"
-	}
-};
 
 class Contact extends React.Component {
 	constructor(props) {
@@ -33,7 +21,8 @@ class Contact extends React.Component {
 			minIncr: "",
 			acquistoDiretto: "",
 			numBlocks: "",
-			contractCreated: false
+			contractCreated: false,
+			numBlockStart: ""
 		};
 		this.handleClick = this.handleClick.bind(this);
 		this.handleInputChange = this.handleInputChange.bind(this);
@@ -49,7 +38,8 @@ class Contact extends React.Component {
 			baseAsta: "",
 			minIncr: "",
 			acquistoDiretto: "",
-			numBlocks: ""
+			numBlocks: "",
+			numBlockStart: ""
 		});
 	}
 
@@ -60,6 +50,7 @@ class Contact extends React.Component {
 		console.log(this.state.minIncr);
 		console.log(this.state.acquistoDiretto);
 		console.log(this.state.numBlocks);
+		console.log(this.state.numBlockStart);
 
 		const web3 = new Web3(Web3.givenProvider || "http://localhost:8545");
 		const accounts = await web3.eth.getAccounts();
@@ -75,7 +66,8 @@ class Contact extends React.Component {
 					this.state.baseAsta,
 					this.state.minIncr,
 					this.state.acquistoDiretto,
-					this.state.numBlocks
+					this.state.numBlocks,
+					this.state.numBlockStart
 				]
 			})
 			.send({
@@ -85,6 +77,7 @@ class Contact extends React.Component {
 			})
 
 			.on("confirmation", (confirmationNumber, receipt) => {
+				console.log(receipt);
 				const newContract = new web3.eth.Contract(
 					ENGLISH_ABI,
 					receipt.contractAddress
@@ -150,16 +143,8 @@ class Contact extends React.Component {
 								<button className="delete" onClick={this.closeModal} />
 							</header>
 							<section className="modal-card-body">
-								<div className="content">Vuoi avviare l'asta?</div>
+								<div className="content">Asta creata con successo</div>
 							</section>
-							<footer className="modal-card-foot">
-								<a className="button is-success" onClick={this.startAuction}>
-									Avvia l'asta
-								</a>
-								<a className="button" onClick={this.closeModal}>
-									Avvia in seguito
-								</a>
-							</footer>
 						</div>
 					</div>
 				) : (
@@ -278,6 +263,25 @@ class Contact extends React.Component {
 							<p className="help ">
 								Inserisci il numero di blocchi senza nuove offerte che dovranno
 								passare prima di decretare il vincitore
+							</p>
+						</div>
+						<div className="field">
+							<label className="label">
+								Numero di blocchi per l'avvio dell'asta
+							</label>
+							<div className="control">
+								<input
+									className="input"
+									type="text"
+									name="numBlockStart"
+									placeholder="Esempio: 10"
+									value={this.state.numBlockStart}
+									onChange={this.handleInputChange}
+								/>
+							</div>
+							<p className="help ">
+								Inserisci il numero di blocchi che devono passare prima di
+								avviare l'asta
 							</p>
 						</div>
 						<br />

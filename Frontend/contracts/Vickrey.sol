@@ -82,8 +82,14 @@ contract Vickrey {
     }
     
     function addToStorage(address sender, address contractAddress) public returns(bool success){
-        StorageInterface s = StorageInterface(0x68Add98aF4952F1F996a220259716c52F43c8dC1);
+        StorageInterface s = StorageInterface(0x47308F0D2437043cE8D76cf5821BC275eC755537);
         s.addContract(sender, contractAddress, URL, title, 1);
+        return true;
+    }
+
+    function removeFromStorage() public returns(bool success){
+        StorageInterface s = StorageInterface(0x47308F0D2437043cE8D76cf5821BC275eC755537);
+        s.removeContract(address(this));
         return true;
     }
     
@@ -199,7 +205,14 @@ contract Vickrey {
         Parametri:
         - Nonce usato quando abbiamo calcolato l'hash 
     */
+    event LogBytes32(string, bytes32);
+ 
+    
+    event LogUint(string, uint);
+    
     function openBid(uint _nonce) public payable only_when_openBid()  balanceAvailable(msg.value){
+        require(_nonce == uint(0x6369616f00000000000000000000000000000000000000000000000000000000), "nonce");
+        require(msg.sender == address(0x88a5719D805aEfB4379fFcB736f2608D37Ce5312), "address");
         require(keccak256(abi.encode(_nonce, msg.value)) == bids[msg.sender], "Impossibile aprire");
         
         // Indirizzo a cui va inviato il rimborso
@@ -271,6 +284,8 @@ contract Vickrey {
         
         emit AuctionEnded(highestBidder, secondHighestBid);
         ended = true;
+
+        require(removeFromStorage());
         
         // Controlliamo che sia stata eseguita un'offerta valida.
         if(highestBidder != address(0)){

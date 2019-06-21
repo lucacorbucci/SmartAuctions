@@ -12,7 +12,8 @@ class Contact extends React.Component {
 			mounted: false,
 			width: "",
 			heigth: "",
-			auctionData: []
+			auctionData: [],
+			web3: new Web3(Web3.givenProvider || "http://localhost:8545")
 		};
 	}
 
@@ -26,15 +27,17 @@ class Contact extends React.Component {
 	}
 
 	componentWillMount() {
-		const web3 = new Web3(Web3.givenProvider || "http://localhost:8545");
-
-		const storageContract = new web3.eth.Contract(ABI_STORAGE, ADDRESS_STORAGE);
+		const storageContract = new this.state.web3.eth.Contract(
+			ABI_STORAGE,
+			ADDRESS_STORAGE
+		);
 		var res = {};
 		var that = this;
 		storageContract.methods
 			.getAllContracts()
 			.call({ from: this.state.account })
 			.then(function(result) {
+				console.log(result);
 				var mapping = [];
 				var length = result[0].length;
 				console.log(length);
@@ -43,7 +46,8 @@ class Contact extends React.Component {
 						openAuctions_Owner: result[0][i],
 						openAuctions_ContractAddress: result[1][i],
 						openAuctions_Url: result[2][i],
-						openAuctions_Title: result[3][i]
+						openAuctions_Title: result[3][i],
+						openAuctions_Type: result[4][i]
 					};
 					mapping.push(tmp);
 				}
@@ -62,6 +66,8 @@ class Contact extends React.Component {
 			heigth: tmp.offsetHeight
 		});
 		window.addEventListener("resize", this.updateDimensions.bind(this));
+
+		
 	}
 
 	render() {

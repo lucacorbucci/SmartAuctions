@@ -9,8 +9,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "ethereumjs-abi": "^0.6.7",
     "openzeppelin-solidity": "^2.3.0",
     "react-modal": "^3.8.1",
+    "react-notifications-component": "^1.1.1",
     "solc": "^0.5.9",
     "truffle": "^5.0.22"
   }

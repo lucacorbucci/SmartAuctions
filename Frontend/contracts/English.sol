@@ -48,7 +48,7 @@ contract englishAuction {
     
     // Blocco in cui è stata eseguita l'ultima offerta
     uint startingBlock;
-    
+    uint auctionStart;
     // Due eventi, uno per dire che ho aumentato l'offerta e uno 
     // per indicare che l'asta è terminata
     event HighestBidIncreased(address bidder, uint amount);
@@ -57,6 +57,9 @@ contract englishAuction {
     // titolo dell'asta e url di una foto del prodotto che voglio vendere
     string title;
     string URL;
+
+    // numero di blocchi che devono passare prima di iniziare l'asta
+    uint numBlockStart;
     
     /*
         Parametri:
@@ -67,7 +70,7 @@ contract englishAuction {
         - _buyoutPrice: prezzo per l'acquisto diretto 
         - _minBlocks: numero minimo di blocchi che devono passare prima di decretare il vincitore dell'asta
     */
-    constructor(string memory _title, string memory _URL, uint _reservePrice, uint _minIcrement, uint _buyoutPrice, uint _minBlocks) public payable{
+    constructor(string memory _title, string memory _URL, uint _reservePrice, uint _minIcrement, uint _buyoutPrice, uint _minBlocks, uint _numBlockStart) public payable{
         require(_reservePrice > 0);
         require(_buyoutPrice > 0);
         reservePrice = _reservePrice;
@@ -77,12 +80,20 @@ contract englishAuction {
         auctioneer = msg.sender;
         title = _title;
         URL = _URL;
+        numBlockStart = _numBlockStart;
+        auctionStart = block.number;
         require(addToStorage(msg.sender, address(this)));
     }
     
     function addToStorage(address sender, address contractAddress) public returns(bool success){
-        StorageInterface s = StorageInterface(0x68Add98aF4952F1F996a220259716c52F43c8dC1);
+        StorageInterface s = StorageInterface(0x47308F0D2437043cE8D76cf5821BC275eC755537);
         s.addContract(sender, contractAddress, URL, title, 0);
+        return true;
+    }
+
+    function removeFromStorage() public returns(bool success){
+        StorageInterface s = StorageInterface(0x47308F0D2437043cE8D76cf5821BC275eC755537);
+        s.removeContract(address(this));
         return true;
     }
     
@@ -128,17 +139,18 @@ contract englishAuction {
     
      // Controllo che l'asta sia stata avviata
     modifier only_when_started(){
-        require(started, "Asta non avviata"); _;
+        require(auctionStart.add(numBlockStart) <= block.number, "Asta non avviata"); _;
     }
     
     
     /*
         Inizio dell'asta, solamente il creatore dell'asta può avviarla
-    */
     function openAuction() public only_auctioneer(){
         require(started == false);
         started = true;
+    
     }
+    */
     
 
     /*
@@ -159,6 +171,7 @@ contract englishAuction {
         emit AuctionEnded(msg.sender, msg.value);
         ended = true;
         buyer = msg.sender;
+        require(removeFromStorage());
         auctioneer.transfer(buyoutPrice);
         
     }
@@ -211,6 +224,7 @@ contract englishAuction {
     function finalize() external payable only_notEnded() onlyAuthorized() only_when_FinalizePhase() only_when_started(){
         ended = true;
         emit AuctionEnded(highestBidder, highestBid);
+        require(removeFromStorage());
         auctioneer.transfer(highestBid);
     }
     

@@ -18,17 +18,32 @@ export default class TileAsta extends React.Component {
 						<div className="column equal-height is-10-mobile is-offset-1-mobile is-half-tablet is-one-third-desktop is-one-quarter-widescreen">
 							<div
 								onClick={e => {
-									window.open(
-										"/addBid/" +
-											auction.openAuctions_ContractAddress +
-											"/" +
-											auction.openAuctions_Title
-									);
+									if (auction.openAuctions_Type == 0) {
+										window.open(
+											"/addBid/" +
+												auction.openAuctions_ContractAddress +
+												"/" +
+												auction.openAuctions_Title,
+											"_self"
+										);
+									} else {
+										window.open(
+											"/addBidVickrey/" +
+												auction.openAuctions_ContractAddress +
+												"/" +
+												auction.openAuctions_Title,
+											"_self"
+										);
+									}
 								}}
 							>
 								<article className="tile is-child notification is-info">
 									<p className="title">{auction.openAuctions_Title}</p>
-									<p className="subtitle">{auction.openAuctions_Title}</p>
+									{auction.openAuctions_Type == 0 ? (
+										<p className="subtitle">Asta inglese 🏴󠁧󠁢󠁥󠁮󠁧󠁿</p>
+									) : (
+										<p className="subtitle">Asta Vickrey ✅</p>
+									)}
 									<figure className="image is-4by3">
 										<img src={auction.openAuctions_Url} />
 									</figure>

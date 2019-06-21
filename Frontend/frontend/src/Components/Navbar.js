@@ -21,7 +21,7 @@ export default class Navbar extends React.Component {
 			<div>
 				<nav className="navbar" role="navigation" aria-label="main navigation">
 					<div className="navbar-brand">
-						<a className="navbar-item" href="/">
+						<a className="navbar-item" href={window.location.origin}>
 							<img
 								src="https://bulma.io/images/bulma-logo.png"
 								width="112"
@@ -49,7 +49,10 @@ export default class Navbar extends React.Component {
 					>
 						<div className="navbar-start">
 							{this.props.menuItems.map(item => (
-								<a className="navbar-item" href={this.props.links[i++]}>
+								<a
+									className="navbar-item"
+									href={window.location.origin + this.props.links[i++]}
+								>
 									{item}
 								</a>
 							))}
