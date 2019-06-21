@@ -4,6 +4,7 @@ import TileAsta from "./TileAsta";
 import ParticleComponent from "./Particles";
 import Web3 from "web3";
 import { ABI_STORAGE, ADDRESS_STORAGE } from "../Ethereum/config.js";
+import Footer from "./Footer";
 
 class Contact extends React.Component {
 	constructor(props) {
@@ -13,9 +14,20 @@ class Contact extends React.Component {
 			width: "",
 			heigth: "",
 			auctionData: [],
-			web3: new Web3(Web3.givenProvider || "http://localhost:8545")
+			web3: new Web3(Web3.givenProvider || "http://localhost:8545"),
+			numeroBlocco: 0
 		};
+
+		var blockNumber = 0;
 	}
+
+	onUpdate = val => {
+		this.blockNumber = val;
+	};
+
+	onBlockNumber = val => {
+		this.numeroBlocco = val;
+	};
 
 	updateDimensions() {
 		var tmp = document.getElementById("cnt");
@@ -66,8 +78,7 @@ class Contact extends React.Component {
 			heigth: tmp.offsetHeight
 		});
 		window.addEventListener("resize", this.updateDimensions.bind(this));
-
-		
+		var that = this;
 	}
 
 	render() {
@@ -123,6 +134,7 @@ class Contact extends React.Component {
 				<div style={{ margin: 10 }}>
 					<TileAsta auctionData={this.state.auctionData} />
 				</div>
+				<Footer onUpdate={this.onUpdate} onBlockNumber={this.onBlockNumber} />
 			</div>
 		);
 	}

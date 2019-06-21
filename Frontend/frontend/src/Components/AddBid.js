@@ -2,6 +2,7 @@ import React from "react";
 import "bulma/css/bulma.css";
 import { ENGLISH_ABI } from "../Ethereum/config.js";
 import Web3 from "web3";
+import Footer from "./Footer";
 
 class Concluse extends React.Component {
 	constructor(props) {
@@ -10,17 +11,44 @@ class Concluse extends React.Component {
 			hovered: false,
 			auctionData: {},
 			contratto: "",
-			bidAmount: 0
+			bidAmount: 0,
+			web3: new Web3(Web3.givenProvider || "http://localhost:8545"),
+			numeroBlocco: 0,
+			started: false
 		};
 		this.AcquistaDiretto = this.AcquistaDiretto.bind(this);
 		this.addBid = this.addBid.bind(this);
 		this.handleInputChange = this.handleInputChange.bind(this);
+		this.onBlockNumber = this.onBlockNumber.bind(this);
+
+		var blockNumber = 0;
+	}
+
+	onUpdate = val => {
+		if (
+			this.state.auctionData.auctionStart +
+				this.state.auctionData.blocchiStart <=
+				val &&
+			this.state.started == false
+		) {
+			console.log("ok stato aggiornato");
+			this.setState({
+				numeroBlocco: val,
+				started: true
+			});
+		}
+		this.blockNumber = val;
+	};
+
+	onBlockNumber(val) {
+		this.setState({
+			numeroBlocco: val
+		});
+		this.blockNumber = val;
 	}
 
 	componentWillMount() {
-		const web3 = new Web3(Web3.givenProvider || "http://localhost:8545");
-
-		const contratto = new web3.eth.Contract(
+		const contratto = new this.state.web3.eth.Contract(
 			ENGLISH_ABI,
 			this.props.match.params.contractAddress
 		);
@@ -30,7 +58,6 @@ class Concluse extends React.Component {
 			.getAllData()
 			.call({ from: this.state.account })
 			.then(function(result) {
-				console.log(result[4]);
 				that.setState({
 					contratto: contratto,
 					auctionData: {
@@ -39,7 +66,11 @@ class Concluse extends React.Component {
 						buyoutPrice: parseInt(result[2]._hex),
 						reservePrice: parseInt(result[3]._hex),
 						isEnded: result[4],
-						isDirectEnded: result[5]
+						isDirectEnded: result[5],
+						auctionStart: parseInt(result[6]),
+						blocchiStart: parseInt(result[7]),
+						lastOfferBlock: parseInt(result[8]),
+						numBlockLastOffer: parseInt(result[9])
 					}
 				});
 			})
@@ -49,10 +80,8 @@ class Concluse extends React.Component {
 	}
 
 	async addBid() {
-		const web3 = new Web3(Web3.givenProvider || "http://localhost:8545");
-		const accounts = await web3.eth.getAccounts();
+		const accounts = await this.state.web3.eth.getAccounts();
 		const address = accounts[0];
-		console.log(this.state.bidAmount);
 		this.state.contratto.methods
 			.bid()
 			.send({
@@ -65,8 +94,7 @@ class Concluse extends React.Component {
 	}
 
 	async AcquistaDiretto() {
-		const web3 = new Web3(Web3.givenProvider || "http://localhost:8545");
-		const accounts = await web3.eth.getAccounts();
+		const accounts = await this.state.web3.eth.getAccounts();
 		const address = accounts[0];
 
 		this.state.contratto.methods
@@ -83,9 +111,6 @@ class Concluse extends React.Component {
 	handleInputChange(event) {
 		const target = event.target;
 		const value = target.value;
-		console.log(target);
-		console.log(value);
-		console.log(this.state.bidAmount);
 		this.setState({
 			bidAmount: value
 		});
@@ -125,7 +150,9 @@ class Concluse extends React.Component {
 											<br />
 										</div>
 									</article>
-								) : (
+								) : this.state.auctionData.auctionStart +
+										this.state.auctionData.blocchiStart <=
+								  this.state.numeroBlocco ? (
 									<div>
 										<h1 className="title is-4">Fai un'offerta</h1>
 										<div class="tile is-parent">
@@ -205,11 +232,22 @@ class Concluse extends React.Component {
 											<br />
 										</div>
 									</div>
+								) : (
+									<article className="message is-danger">
+										<div className="message-header">
+											<p>Avviso!</p>
+										</div>
+										<div className="message-body">
+											L'asta inizierà a breve!
+											<br />
+										</div>
+									</article>
 								)}
 							</div>
 						</div>
 					</div>
 				</div>
+				<Footer onUpdate={this.onUpdate} onBlockNumber={this.onBlockNumber} />
 			</div>
 		);
 	}

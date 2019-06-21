@@ -31,7 +31,6 @@ const routing = (
 				path="/addBidVickrey/:contractAddress/:Titolo/"
 				component={AddBidVickrey}
 			/>
-			<Route path="/" component={Footer} />
 		</div>
 	</Router>
 );

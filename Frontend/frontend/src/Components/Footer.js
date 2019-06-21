@@ -8,6 +8,8 @@ import "react-notifications-component/dist/theme.css";
 class Footer extends React.Component {
 	constructor(props) {
 		super(props);
+
+		var blockNumber = 0;
 		this.addNotification = this.addNotification.bind(this);
 		this.notificationDOMRef = React.createRef();
 	}
@@ -25,14 +27,35 @@ class Footer extends React.Component {
 			dismissable: { click: true }
 		});
 	}
+
+	update(number) {
+		console.log("update " + number);
+		this.props.onUpdate(number);
+	}
+
+	firstUpdate(number) {
+		this.props.onBlockNumber(number);
+	}
+
 	componentDidMount() {
 		const web3 = new Web3(Web3.givenProvider || "http://localhost:8545");
 		const subscription = web3.eth.subscribe("newBlockHeaders");
+		var that = this;
 
+		web3.eth.getBlockNumber().then(data => {
+			//console.log(data);
+			//console.log(that.state.Phase);
+			//console.log(parseInt(data));
+			this.firstUpdate(data);
+		});
 		subscription.on("data", async (block, error) => {
+			that.blockNumber = block.number;
+
+			this.update(that.blockNumber);
 			this.addNotification();
 		});
 	}
+
 	render() {
 		return (
 			<div>

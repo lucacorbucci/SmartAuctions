@@ -48,6 +48,7 @@ contract englishAuction {
     
     // Blocco in cui è stata eseguita l'ultima offerta
     uint startingBlock;
+    // blocco in cui creo l'asta
     uint auctionStart;
     // Due eventi, uno per dire che ho aumentato l'offerta e uno 
     // per indicare che l'asta è terminata
@@ -256,9 +257,9 @@ contract englishAuction {
         return minIcrement;
     }
 
-    function getAllData() public view returns(uint, uint, uint, uint, bool, bool){
+    function getAllData() public view returns(uint, uint, uint, uint, bool, bool, uint, uint, uint, uint){
         
-        return (minIcrement, highestBid, buyoutPrice, reservePrice, ended, buyoutEnded);
+        return (minIcrement, highestBid, buyoutPrice, reservePrice, ended, buyoutEnded, auctionStart, numBlockStart, startingBlock, minBlocks);
     }
 
 
