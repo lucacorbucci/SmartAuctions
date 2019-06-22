@@ -6,7 +6,7 @@ import Web3 from "web3";
 import { ABI_STORAGE, ADDRESS_STORAGE } from "../Ethereum/config.js";
 import Footer from "./Footer";
 
-class Contact extends React.Component {
+class Home extends React.Component {
 	constructor(props) {
 		super(props);
 		this.state = {
@@ -139,4 +139,4 @@ class Contact extends React.Component {
 		);
 	}
 }
-export default Contact;
+export default Home;

@@ -87,13 +87,13 @@ contract englishAuction {
     }
     
     function addToStorage(address sender, address contractAddress) public returns(bool success){
-        StorageInterface s = StorageInterface(0x47308F0D2437043cE8D76cf5821BC275eC755537);
+        StorageInterface s = StorageInterface(0xf95bB3E0F604a899679C322A32185Cbd0a73c0Ad);
         s.addContract(sender, contractAddress, URL, title, 0);
         return true;
     }
 
     function removeFromStorage() public returns(bool success){
-        StorageInterface s = StorageInterface(0x47308F0D2437043cE8D76cf5821BC275eC755537);
+        StorageInterface s = StorageInterface(0xf95bB3E0F604a899679C322A32185Cbd0a73c0Ad);
         s.removeContract(address(this));
         return true;
     }
@@ -257,9 +257,9 @@ contract englishAuction {
         return minIcrement;
     }
 
-    function getAllData() public view returns(uint, uint, uint, uint, bool, bool, uint, uint, uint, uint){
+    function getAllData() public view returns(uint, uint, uint, uint, bool, bool, uint, uint, uint, uint, address){
         
-        return (minIcrement, highestBid, buyoutPrice, reservePrice, ended, buyoutEnded, auctionStart, numBlockStart, startingBlock, minBlocks);
+        return (minIcrement, highestBid, buyoutPrice, reservePrice, ended, buyoutEnded, auctionStart, numBlockStart, startingBlock, minBlocks, highestBidder);
     }
 
 

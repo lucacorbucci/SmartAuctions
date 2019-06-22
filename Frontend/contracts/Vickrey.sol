@@ -82,13 +82,13 @@ contract Vickrey {
     }
     
     function addToStorage(address sender, address contractAddress) public returns(bool success){
-        StorageInterface s = StorageInterface(0x47308F0D2437043cE8D76cf5821BC275eC755537);
+        StorageInterface s = StorageInterface(0xf95bB3E0F604a899679C322A32185Cbd0a73c0Ad);
         s.addContract(sender, contractAddress, URL, title, 1);
         return true;
     }
 
     function removeFromStorage() public returns(bool success){
-        StorageInterface s = StorageInterface(0x47308F0D2437043cE8D76cf5821BC275eC755537);
+        StorageInterface s = StorageInterface(0xf95bB3E0F604a899679C322A32185Cbd0a73c0Ad);
         s.removeContract(address(this));
         return true;
     }

@@ -22,17 +22,22 @@ contract Storage{
 
     uint counter;
     uint counterEnded;
+
+    event newAuction(address bidder);
+    event auctionEnded(address winner);
     
     function addContract(address creator, address contratto, string memory _url, string memory _titolo, uint tipo) public{
         contratti[contratto] = myContract(creator, contratto, counter, true, _url, _titolo, tipo);
         counter++;
         addContratti.push(contratto);
+        emit newAuction(contratto);
     }
     
     function removeContract(address contr) public{
         require(contratti[contr].counter >= 0, "non esiste");
         contratti[contr].isActive = false;
         counterEnded++;
+        emit auctionEnded(contr);
     }
     
     function getAllContracts() public view returns(address[] memory, address[] memory, string[] memory, string[] memory, uint[] memory){

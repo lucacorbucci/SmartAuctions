@@ -7,8 +7,9 @@ import {
 	ABI_STORAGE,
 	ADDRESS_STORAGE
 } from "../Ethereum/config.js";
+import Footer from "./Footer";
 
-class Contact extends React.Component {
+class EnglishAuction extends React.Component {
 	constructor(props) {
 		super(props);
 		this.state = {
@@ -30,6 +31,10 @@ class Contact extends React.Component {
 		this.startAuction = this.startAuction.bind(this);
 		this.closeModal = this.closeModal.bind(this);
 	}
+
+	onUpdate = val => {};
+
+	onBlockNumber = val => {};
 
 	cancel() {
 		this.setState({
@@ -308,8 +313,9 @@ class Contact extends React.Component {
 
 				<br />
 				<br />
+				<Footer onUpdate={this.onUpdate} onBlockNumber={this.onBlockNumber} />
 			</div>
 		);
 	}
 }
-export default Contact;
+export default EnglishAuction;

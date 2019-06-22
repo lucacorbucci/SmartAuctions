@@ -3,6 +3,7 @@ import "bulma/css/bulma.css";
 import TileAsta from "./TileAsta";
 import Web3 from "web3";
 import { ABI_STORAGE, ADDRESS_STORAGE } from "../Ethereum/config.js";
+import Footer from "./Footer";
 
 class Concluse extends React.Component {
 	constructor(props) {
@@ -11,6 +12,9 @@ class Concluse extends React.Component {
 			auctionData: []
 		};
 	}
+
+	onUpdate = val => {};
+	onBlockNumber = val => {};
 
 	componentWillMount() {
 		const web3 = new Web3(Web3.givenProvider || "http://localhost:8545");
@@ -80,6 +84,7 @@ class Concluse extends React.Component {
 				<div style={{ margin: 10 }}>
 					<TileAsta auctionData={this.state.auctionData} />
 				</div>
+				<Footer onUpdate={this.onUpdate} onBlockNumber={this.onBlockNumber} />
 			</div>
 		);
 	}

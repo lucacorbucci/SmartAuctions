@@ -3,6 +3,7 @@ import "bulma/css/bulma.css";
 import Web3 from "web3";
 import { VICKREY_DATA, VICKREY_ABI } from "../Ethereum/config.js";
 import Modal from "react-modal";
+import Footer from "./Footer";
 
 class VickreyAuction extends React.Component {
 	constructor(props) {
@@ -26,6 +27,10 @@ class VickreyAuction extends React.Component {
 		this.startAuction = this.startAuction.bind(this);
 		this.closeModal = this.closeModal.bind(this);
 	}
+
+	onUpdate = val => {};
+
+	onBlockNumber = val => {};
 
 	cancel() {
 		this.setState({
@@ -316,6 +321,7 @@ class VickreyAuction extends React.Component {
 
 				<br />
 				<br />
+				<Footer onUpdate={this.onUpdate} onBlockNumber={this.onBlockNumber} />
 			</div>
 		);
 	}

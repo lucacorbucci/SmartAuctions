@@ -49,10 +49,10 @@ class Footer extends React.Component {
 			this.firstUpdate(data);
 		});
 		subscription.on("data", async (block, error) => {
+			console.log("foot" + block.number);
 			that.blockNumber = block.number;
 
 			this.update(that.blockNumber);
-			this.addNotification();
 		});
 	}
 

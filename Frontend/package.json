@@ -9,10 +9,14 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@emotion/core": "^10.0.10",
     "ethereumjs-abi": "^0.6.7",
+    "loaders.css": "^0.1.2",
     "openzeppelin-solidity": "^2.3.0",
+    "react-loaders": "^3.0.1",
     "react-modal": "^3.8.1",
     "react-notifications-component": "^1.1.1",
+    "react-spinners": "^0.5.4",
     "solc": "^0.5.9",
     "truffle": "^5.0.22"
   }
