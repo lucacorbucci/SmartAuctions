@@ -4,7 +4,6 @@ import { ENGLISH_ABI } from "../Ethereum/config.js";
 import Web3 from "web3";
 import Footer from "./Footer";
 import { css } from "@emotion/core";
-// First way to import
 import { GridLoader } from "react-spinners";
 import ReactNotification from "react-notifications-component";
 import "react-notifications-component/dist/theme.css";
@@ -14,6 +13,10 @@ const override = css`
 	margin: 0 auto;
 	border-color: red;
 `;
+
+const divAllPage = {
+	height: "80vh"
+};
 
 class Concluse extends React.Component {
 	constructor(props) {
@@ -32,7 +35,8 @@ class Concluse extends React.Component {
 			loaded: false,
 			bidded: false,
 			myOffer: undefined,
-			highestBidder: ""
+			highestBidder: "",
+			highestBid: undefined
 		};
 		this.AcquistaDiretto = this.AcquistaDiretto.bind(this);
 		this.addBid = this.addBid.bind(this);
@@ -108,7 +112,32 @@ class Concluse extends React.Component {
 				);
 				console.log(this.state.highestBidder);
 				this.setState({
-					highestBidder: event.returnValues[0]
+					highestBidder: event.returnValues[0],
+					highestBid: parseInt(event.returnValues[1]._hex)
+				});
+				console.log(this.state.highestBidder);
+
+				console.log(this.state.highestBidder == this.state.myAddress);
+
+				console.log(this.state.highestBidder === this.state.myAddress);
+				console.log(this.state.highestBidder + "" == this.state.myAddress + "");
+				console.log(this.state.myAddress);
+				console.log(event.returnValues[0]); // same results as the optional callback above
+			})
+
+			.on("error", console.error);
+
+		contratto.events
+			.AuctionEnded()
+			.on("data", event => {
+				this.addNotification("Asta terminata", "L'asta è stata finalizzata");
+
+				this.setState({
+					highestBidder: event.returnValues[0],
+					highestBid: parseInt(event.returnValues[1]._hex),
+					auctionData: {
+						isEnded: true
+					}
 				});
 				console.log(this.state.highestBidder);
 
@@ -179,10 +208,17 @@ class Concluse extends React.Component {
 			})
 			.on("confirmation", (confirmationNumber, receipt) => {
 				console.log("acquistato direttamente");
+				this.setState({
+					isEnded: true
+				});
 			});
 	}
 
 	handleInputChange(event) {
+		console.log(this.state.isEnded);
+		console.log(this.state.numeroBlocco);
+		console.log(this.state.auctionData.numBlockLastOffer);
+
 		const target = event.target;
 		const value = target.value;
 		this.setState({
@@ -210,7 +246,7 @@ class Concluse extends React.Component {
 
 	render() {
 		return (
-			<div>
+			<div className="contentp">
 				<div className="app-content">
 					<ReactNotification ref={this.notificationDOMRef} />
 				</div>
@@ -222,185 +258,197 @@ class Concluse extends React.Component {
 					</div>
 				</section>
 				<br />
-				<div className="container control">
-					{this.state.loaded == false ? (
-						<div className="columns">
-							<div className="column is-one-half">
-								<div className="GridLoader">
-									<GridLoader
-										css={override}
-										sizeUnit={"px"}
-										size={50}
-										color={"#36D7B7"}
-									/>
+				<div style={divAllPage}>
+					<div className="container control">
+						{this.state.loaded == false ? (
+							<div className="columns">
+								<div className="column is-one-half">
+									<div className="GridLoader">
+										<GridLoader
+											css={override}
+											sizeUnit={"px"}
+											size={50}
+											color={"#36D7B7"}
+										/>
+									</div>
+									<br />
+									<br />
+									<br />
+									<br />
+									<br />
+									<br />
 								</div>
-								<br />
-								<br />
-								<br />
-								<br />
-								<br />
-								<br />
 							</div>
-						</div>
-					) : (
-						<div className="columns">
-							<div className="column is-one-third">
-								<p className="image">
-									<img src="https://cdn.corrieredellosport.it/images/2019/06/12/172034860-211f05c4-c44c-4c85-9084-d3f0f1a483ca.jpg" />
-								</p>
-							</div>
-							<div className="column">
-								<div>
-									<h1 className="title is-1">
-										{this.props.match.params.Titolo}
-									</h1>
+						) : (
+							<div className="columns">
+								<div className="column is-one-third">
+									<p className="image">
+										<img src="https://cdn.corrieredellosport.it/images/2019/06/12/172034860-211f05c4-c44c-4c85-9084-d3f0f1a483ca.jpg" />
+									</p>
 								</div>
-								<br />
-								<div>
-									{this.state.auctionData.isEnded ? (
-										<article className="message is-danger">
-											<div className="message-header">
-												<p>Avviso!</p>
-											</div>
-											<div className="message-body">
-												L'asta è terminata. Impossibile fare altre offerte
-												<br />
-											</div>
-										</article>
-									) : this.state.auctionData.lastOfferBlock != 0 &&
-									  this.state.auctionData.lastOfferBlock +
-											this.state.auctionData.numBlockLastOffer <
-											this.state.numeroBlocco ? (
-										<div>
-											<h1 className="title is-4">Completa l'asta</h1>
+								<div className="column">
+									<div>
+										<h1 className="title is-1">
+											{this.props.match.params.Titolo}
+										</h1>
+									</div>
+									<br />
+									<div>
+										{this.state.auctionData.isEnded ? (
+											<article className="message is-danger">
+												<div className="message-header">
+													<p>Avviso!</p>
+												</div>
+												<div className="message-body">
+													L'asta è terminata. Impossibile fare altre offerte
+													<br />
+												</div>
+											</article>
+										) : this.state.auctionData.lastOfferBlock != 0 &&
+										  this.state.auctionData.lastOfferBlock +
+												this.state.auctionData.numBlockLastOffer <
+												this.state.numeroBlocco ? (
+											<div>
+												<h1 className="title is-4">Completa l'asta</h1>
 
-											<div className="tile is-parent">
-												<article className="tile is-child notification is-primary">
-													<p className="subtitle">
-														Non è possibile fare altre offerte, se sei il
-														vincitore e o se hai creato l'asta puoi terminarla.
-													</p>
-												</article>
-											</div>
-											<div className="content" />
+												<div className="tile is-parent">
+													<article className="tile is-child notification is-primary">
+														<p className="subtitle">
+															Non è possibile fare altre offerte, se sei il
+															vincitore e o se hai creato l'asta puoi
+															terminarla.
+														</p>
+													</article>
+												</div>
+												<div className="content" />
 
-											<div className="content" />
-											<div className="column is-half is-offset-one-quarter">
+												<div className="content" />
 												<div className="column is-half is-offset-one-quarter">
-													<p className="control">
-														<a
-															className="button is-link"
-															onClick={this.finalize}
-														>
-															Finalizza l'asta
-														</a>
-													</p>
+													<div className="column is-half is-offset-one-quarter">
+														<p className="control">
+															<a
+																className="button is-link"
+																onClick={this.finalize}
+															>
+																Finalizza l'asta
+															</a>
+														</p>
+													</div>
 												</div>
 											</div>
-										</div>
-									) : this.state.auctionData.auctionStart +
-											this.state.auctionData.blocchiStart <=
-									  this.state.numeroBlocco ? (
-										<div>
-											<h1 className="title is-4">Fai un'offerta</h1>
-											<div className="tile is-parent">
-												<article className="tile is-child notification is-primary">
-													<p className="subtitle">
-														{this.state.highestBidder === this.state.myAddress
-															? "Attualmente sei il vincitore dell'asta"
-															: this.state.auctionData.highestBid > 0
-															? "Ehi, ci sono già delle offerte per questo prodotto. Offri almeno " +
-															  parseInt(
-																	parseInt(this.state.auctionData.highestBid) +
+										) : this.state.auctionData.auctionStart +
+												this.state.auctionData.blocchiStart <=
+										  this.state.numeroBlocco ? (
+											<div>
+												<h1 className="title is-4">Fai un'offerta</h1>
+												<div className="tile is-parent">
+													<article className="tile is-child notification is-primary">
+														<p className="subtitle">
+															{this.state.highestBidder === this.state.myAddress
+																? "Attualmente sei il vincitore dell'asta"
+																: this.state.auctionData.highestBid > 0
+																? "Ehi, ci sono già delle offerte per questo prodotto. Offri almeno " +
+																  parseInt(
 																		parseInt(
-																			this.state.auctionData.minIncrement
-																		)
-															  )
-															: "Nessuno ha ancora fatto un'offerta, vuoi essere il primo? Offri almeno " +
-															  this.state.auctionData.reservePrice +
-															  " Wei per partecipare all'asta!"}
-													</p>
-												</article>
-											</div>
-
-											<div className="content" />
-											<div className="column is-half is-offset-one-quarter">
-												<div className="field has-addons">
-													<p className="control">
-														<p className="button ">Wei</p>
-													</p>
-													<input
-														className="input"
-														type="text"
-														onChange={this.handleInputChange}
-														placeholder={
-															this.state.auctionData.highestBid > 0
-																? parseInt(
-																		parseInt(
-																			this.state.auctionData.highestBid
+																			this.state.highestBid != undefined
+																				? this.state.highestBid
+																				: this.state.auctionData.highestBid
 																		) +
 																			parseInt(
 																				this.state.auctionData.minIncrement
 																			)
 																  )
-																: parseInt(this.state.auctionData.reservePrice)
-														}
-														name={this.state.bidAmount}
-													/>
-													<p className="control">
-														<a className="button is-link" onClick={this.addBid}>
-															Invia offerta
+																: "Nessuno ha ancora fatto un'offerta, vuoi essere il primo? Offri almeno " +
+																  this.state.auctionData.reservePrice +
+																  " Wei per partecipare all'asta!"}
+														</p>
+													</article>
+												</div>
+
+												<div className="content" />
+												<div className="column is-half is-offset-one-quarter">
+													<div className="field has-addons">
+														<p className="control">
+															<p className="button ">Wei</p>
+														</p>
+														<input
+															className="input"
+															type="text"
+															onChange={this.handleInputChange}
+															placeholder={
+																this.state.auctionData.highestBid > 0
+																	? parseInt(
+																			parseInt(
+																				this.state.auctionData.highestBid
+																			) +
+																				parseInt(
+																					this.state.auctionData.minIncrement
+																				)
+																	  )
+																	: parseInt(
+																			this.state.auctionData.reservePrice
+																	  )
+															}
+															name={this.state.bidAmount}
+														/>
+														<p className="control">
+															<a
+																className="button is-link"
+																onClick={this.addBid}
+															>
+																Invia offerta
+															</a>
+														</p>
+													</div>
+												</div>
+
+												<br />
+												<br />
+												<div>
+													<h1 className="title is-4">
+														Oppure acquista direttamente
+													</h1>
+													{!this.state.auctionData.isDirectEnded ? (
+														// se ancora posso fare un acquisto diretto
+														<a
+															className="button is-link"
+															onClick={this.AcquistaDiretto}
+														>
+															Acquista direttamente
 														</a>
-													</p>
+													) : (
+														// caso in cui devo stampare il blocco rosso
+														<article className="message is-danger">
+															<div className="message-header">
+																<p>Acquisto Diretto</p>
+															</div>
+															<div className="message-body">
+																Per questa asta non è più disponibile l'acquisto
+																diretto
+															</div>
+														</article>
+													)}
+													<br />
+													<br />
+													<br />
 												</div>
 											</div>
-
-											<br />
-											<br />
-											<div>
-												<h1 className="title is-4">
-													Oppure acquista direttamente
-												</h1>
-												{!this.state.auctionData.isDirectEnded ? (
-													// se ancora posso fare un acquisto diretto
-													<a
-														className="button is-link"
-														onClick={this.AcquistaDiretto}
-													>
-														Acquista direttamente
-													</a>
-												) : (
-													// caso in cui devo stampare il blocco rosso
-													<article className="message is-danger">
-														<div className="message-header">
-															<p>Acquisto Diretto</p>
-														</div>
-														<div className="message-body">
-															Per questa asta non è più disponibile l'acquisto
-															diretto
-														</div>
-													</article>
-												)}
-												<br />
-												<br />
-												<br />
-											</div>
-										</div>
-									) : (
-										<article className="message is-danger">
-											<div className="message-header">
-												<p>Avviso!</p>
-											</div>
-											<div className="message-body">
-												L'asta inizierà a breve!
-												<br />
-											</div>
-										</article>
-									)}
+										) : (
+											<article className="message is-danger">
+												<div className="message-header">
+													<p>Avviso!</p>
+												</div>
+												<div className="message-body">
+													L'asta inizierà a breve!
+													<br />
+												</div>
+											</article>
+										)}
+									</div>
 								</div>
 							</div>
-						</div>
-					)}
+						)}
+					</div>
 				</div>
 				<Footer onUpdate={this.onUpdate} onBlockNumber={this.onBlockNumber} />
 			</div>

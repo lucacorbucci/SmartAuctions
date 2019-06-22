@@ -19,7 +19,8 @@ class VickreyAuction extends React.Component {
 			withdrawalPhaseLength: "",
 			bidOpeningPhaseLength: "",
 			bidDeposit: "",
-			contractCreated: false
+			contractCreated: false,
+			numBlockStart: ""
 		};
 		this.handleClick = this.handleClick.bind(this);
 		this.handleInputChange = this.handleInputChange.bind(this);
@@ -40,7 +41,8 @@ class VickreyAuction extends React.Component {
 			bidPhaseLength: "",
 			withdrawalPhaseLength: "",
 			bidOpeningPhaseLength: "",
-			bidDeposit: ""
+			bidDeposit: "",
+			numBlockStart: ""
 		});
 	}
 
@@ -68,7 +70,8 @@ class VickreyAuction extends React.Component {
 					this.state.bidPhaseLength,
 					this.state.withdrawalPhaseLength,
 					this.state.bidOpeningPhaseLength,
-					this.state.bidDeposit
+					this.state.bidDeposit,
+					this.state.numBlockStart
 				]
 			})
 			.send({
@@ -143,16 +146,10 @@ class VickreyAuction extends React.Component {
 								<button className="delete" onClick={this.closeModal} />
 							</header>
 							<section className="modal-card-body">
-								<div className="content">Vuoi avviare l'asta?</div>
+								<div className="content">
+									L'asta Vicrey è stata creata correttamente
+								</div>
 							</section>
-							<footer className="modal-card-foot">
-								<a className="button is-success" onClick={this.startAuction}>
-									Avvia l'asta
-								</a>
-								<a className="button" onClick={this.closeModal}>
-									Avvia in seguito
-								</a>
-							</footer>
 						</div>
 					</div>
 				) : (
@@ -275,6 +272,26 @@ class VickreyAuction extends React.Component {
 							<p className="help ">
 								Inserire il numero di blocchi che indicano la lunghezza della
 								fase di apertura delle "buste"
+							</p>
+						</div>
+
+						<div className="field">
+							<label className="label">
+								Numero di blocchi per l'avvio dell'asta
+							</label>
+							<div className="control">
+								<input
+									className="input"
+									type="text"
+									name="numBlockStart"
+									placeholder="Esempio: 10"
+									value={this.state.numBlockStart}
+									onChange={this.handleInputChange}
+								/>
+							</div>
+							<p className="help ">
+								Inserisci il numero di blocchi che devono passare prima di
+								avviare l'asta
 							</p>
 						</div>
 

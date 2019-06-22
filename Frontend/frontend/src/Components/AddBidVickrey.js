@@ -3,6 +3,11 @@ import "bulma/css/bulma.css";
 import { VICKREY_ABI } from "../Ethereum/config.js";
 import Web3 from "web3";
 import abi from "ethereumjs-abi";
+import Footer from "./Footer";
+import { css } from "@emotion/core";
+import { GridLoader } from "react-spinners";
+import ReactNotification from "react-notifications-component";
+import "react-notifications-component/dist/theme.css";
 
 class Concluse extends React.Component {
 	constructor(props) {
@@ -25,8 +30,16 @@ class Concluse extends React.Component {
 			NonceOpen: "",
 			BidAmountOpen: 0,
 			aperta: 0,
-			finalized: false
+			finalized: false,
+			auctionData: {},
+			numeroBlocco: undefined,
+			started: false,
+			withdrawal: false,
+			opening: false
 		};
+
+		var blockNumber = undefined;
+
 		this.addBid = this.addBid.bind(this);
 		this.handleInputChange = this.handleInputChange.bind(this);
 		this.generateHash = this.generateHash.bind(this);
@@ -35,6 +48,68 @@ class Concluse extends React.Component {
 		this.openBid = this.openBid.bind(this);
 		this.checkBlock = this.checkBlock.bind(this);
 		this.finalize = this.finalize.bind(this);
+		this.onBlockNumber = this.onBlockNumber.bind(this);
+	}
+
+	onUpdate = val => {
+		// primo caso in cui facciamo partire l'asta
+		if (
+			this.state.auctionData.bidPhaseStart <= val &&
+			this.state.started == false
+		) {
+			this.setState({
+				numeroBlocco: val,
+				started: true
+			});
+		}
+
+		// secondo caso, si passa alla fase di ritiro offerta
+		if (
+			this.state.auctionData.withDrawalPhaseStart <= val &&
+			val <
+				this.state.auctionData.withDrawalPhaseStart +
+					this.state.auctionData.bidWithdrawalTime &&
+			this.state.withdrawal == false
+		) {
+			this.setState({
+				numeroBlocco: val,
+				withdrawal: true
+			});
+		}
+
+		if (
+			this.state.auctionData.bidOpeningPhaseStart <= val &&
+			val <
+				this.state.auctionData.bidOpeningPhaseStart +
+					this.state.auctionData.bidOpeningTime &&
+			this.state.opening == false
+		) {
+			this.setState({
+				numeroBlocco: val,
+				opening: true
+			});
+		}
+		if (
+			this.state.auctionData.bidOpeningPhaseStart +
+				this.state.auctionData.bidOpeningTime <=
+			val
+		) {
+			this.setState({
+				numeroBlocco: val
+			});
+		}
+
+		this.blockNumber = val;
+	};
+
+	onBlockNumber(val) {
+		console.log("val" + val);
+		this.setState({
+			numeroBlocco: val
+		});
+		this.blockNumber = val;
+		console.log("val" + this.blockNumber);
+		console.log("valssta" + this.state.numeroBlocco);
 	}
 
 	generateHash() {
@@ -111,21 +186,41 @@ class Concluse extends React.Component {
 			.getAllData()
 			.call({ from: this.state.account })
 			.then(function(result) {
+				console.log(result);
 				that.setState({
 					contratto: contratto,
 					auctionData: {
 						highestBid: parseInt(result[0]._hex),
 						secondHighestBid: parseInt(result[1]._hex),
-						bidTimeStart: parseInt(result[2]._hex),
-						bidTime: parseInt(result[3]._hex),
-						bidWithdrawalTime: parseInt(result[4]._hex),
-						bidOpeningTime: parseInt(result[5]._hex),
-						bidDeposit: parseInt(result[6]._hex),
-						reservePrice: parseInt(result[7]._hex),
-						isEnded: result[8],
-						started: result[9]
+
+						// quando iniziano le varie fasi
+						bidPhaseStart: parseInt(result[2]._hex),
+						withDrawalPhaseStart: parseInt(result[3]._hex),
+						bidOpeningPhaseStart: parseInt(result[4]._hex),
+
+						// quanto durano le varie fasi
+						bidTime: parseInt(result[5]._hex),
+						bidWithdrawalTime: parseInt(result[6]._hex),
+						bidOpeningTime: parseInt(result[7]._hex),
+						bidDeposit: parseInt(result[8]._hex),
+
+						reservePrice: parseInt(result[9]._hex),
+						isEnded: result[10],
+						highestBidder: result[12]
 					}
 				});
+
+				console.log(that.state.auctionData.bidPhaseStart);
+				console.log(that.state.auctionData.withDrawalPhaseStart);
+				console.log(that.state.auctionData.bidOpeningPhaseStart);
+				console.log(that.state.auctionData.bidTime);
+				console.log(that.state.auctionData.bidWithdrawalTime);
+				console.log(that.state.auctionData.bidOpeningTime);
+				console.log(that.state.auctionData.bidDeposit);
+				var intervalId = setInterval(() => {
+					console.log(that.state.numeroBlocco);
+				}, 1000);
+
 				that.checkBlock();
 			})
 			.catch(err => {
@@ -184,8 +279,12 @@ class Concluse extends React.Component {
 			})
 			.on("confirmation", (confirmationNumber, receipt) => {
 				console.log(receipt);
+				console.log("conferma finalize");
 				this.setState({
-					finalized: true
+					finalized: true,
+					auctionData: {
+						isEnded: true
+					}
 				});
 			});
 	}
@@ -268,8 +367,10 @@ class Concluse extends React.Component {
 											<br />
 										</div>
 									</article>
-								) : this.state.auctionData.started ? (
-									this.state.Phase == 0 ? (
+								) : this.state.auctionData.bidPhaseStart <=
+								  this.state.numeroBlocco ? (
+									this.state.numeroBlocco <
+									this.state.auctionData.withDrawalPhaseStart ? (
 										<div>
 											{this.state.bidded ? (
 												<div className="modal is-active">
@@ -345,7 +446,10 @@ class Concluse extends React.Component {
 												</div>
 											</div>
 										</div>
-									) : this.state.Phase == 1 ? (
+									) : this.state.auctionData.withDrawalPhaseStart <=
+											this.state.numeroBlocco &&
+									  this.state.numeroBlocco <
+											this.state.auctionData.bidOpeningPhaseStart ? (
 										<div>
 											<h1 className="title is-4">Ritira la tua offerta</h1>
 											<div class="tile is-parent">
@@ -410,7 +514,11 @@ class Concluse extends React.Component {
 												</div>
 											</div>
 										</div>
-									) : this.state.Phase == 2 ? (
+									) : this.state.auctionData.bidOpeningPhaseStart <=
+											this.state.numeroBlocco &&
+									  this.state.numeroBlocco <
+											this.state.auctionData.bidOpeningPhaseStart +
+												this.state.auctionData.bidOpeningTime ? (
 										<div>
 											<h1 className="title is-4">Rivela la tua offerta</h1>
 											<div class="tile is-parent">
@@ -535,6 +643,7 @@ class Concluse extends React.Component {
 						</div>
 					</div>
 				</div>
+				<Footer onUpdate={this.onUpdate} onBlockNumber={this.onBlockNumber} />
 			</div>
 		);
 	}

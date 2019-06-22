@@ -5,6 +5,13 @@ import { TODO_LIST_ABI, TODO_LIST_ADDRESS } from "../Ethereum/config.js";
 import ReactNotification from "react-notifications-component";
 import "react-notifications-component/dist/theme.css";
 
+const footerStyle = {
+	position: "absolute",
+	bottom: "0",
+	width: "100%",
+	height: "50px"
+};
+
 class Footer extends React.Component {
 	constructor(props) {
 		super(props);
@@ -49,7 +56,6 @@ class Footer extends React.Component {
 			this.firstUpdate(data);
 		});
 		subscription.on("data", async (block, error) => {
-			console.log("foot" + block.number);
 			that.blockNumber = block.number;
 
 			this.update(that.blockNumber);

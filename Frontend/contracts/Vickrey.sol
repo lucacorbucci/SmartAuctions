@@ -51,6 +51,14 @@ contract Vickrey {
     string title;
     string URL;
     
+    // blocco in cui creo l'asta
+    uint auctionStart;
+    // numero di blocchi che devono passare prima di iniziare l'asta
+    uint numBlockStart;
+
+    uint bidPhaseStart;
+    uint withDrawalPhaseStart;
+    uint bidOpeningPhaseStart;
     /*
         Parametri:
         - _title = nome del prodotto che viene messo in vendita con l'asta
@@ -64,7 +72,7 @@ contract Vickrey {
         aprire le "buste" con le offerte
         - _bidDeposit = deposito che deve essere lasciato da chi fa un'offerta
     */
-    constructor(string memory _title, string memory _URL, uint _reservePrice, uint _bidTime, uint _withdrawalTime, uint _bidOpeningTime, uint _bidDeposit) public payable{
+    constructor(string memory _title, string memory _URL, uint _reservePrice, uint _bidTime, uint _withdrawalTime, uint _bidOpeningTime, uint _bidDeposit, uint _numBlockStart) public payable{
         require(_reservePrice > 0, "reserve > 0");
         reservePrice = _reservePrice;
         auctioneer = msg.sender;
@@ -78,8 +86,17 @@ contract Vickrey {
         secondHighestBid = reservePrice;
         title = _title;
         URL = _URL;
+        numBlockStart = _numBlockStart;
+        auctionStart = block.number;
+        // memorizzo quando iniziano le varie fasi, la prima è la fase in cui posso inviare offerte
+        bidPhaseStart = auctionStart.add(numBlockStart);
+        // la seconda è la fase in cui ritiro
+        withDrawalPhaseStart = bidPhaseStart.add(bidTime);
+        // questa è la fase in cui apro le buste
+        bidOpeningPhaseStart = withDrawalPhaseStart.add(withdrawalTime);
         require(addToStorage(msg.sender, address(this)));
     }
+
     
     function addToStorage(address sender, address contractAddress) public returns(bool success){
         StorageInterface s = StorageInterface(0xf95bB3E0F604a899679C322A32185Cbd0a73c0Ad);
@@ -96,30 +113,24 @@ contract Vickrey {
     // Controlla che l'asta sia stata avviata e che la fase di invio delle offerte non 
     // sia ancora completata
     modifier only_when_BidPhase(){
-        require(started == true, "Asta non iniziata");
-        require(block.number <= bidTimeStart.add(bidTime), "Bid Phase ended"); _;
+        require(block.number > bidPhaseStart, "Asta non iniziata");
+        require(block.number <= withDrawalPhaseStart, "Bid Phase ended"); _;
     }
     
     // Controlla che la fase di invio delle offerte sia terminata, che siamo nella fase Withdrawal
     // e che l'asta è stata avviata
     modifier only_when_WithdrawalPhase(){
-        require(started == true, "Asta non iniziata");
-        require(block.number > bidTimeStart.add(bidTime), "Bid Phase non terminata");
-        require(block.number <= (bidTimeStart.add(bidTime)).add(withdrawalTime), "Withdrawal Phase terminata"); _;
+        require(block.number > withDrawalPhaseStart, "Bid Phase non terminata");
+        require(block.number <= bidOpeningPhaseStart, "Withdrawal Phase terminata"); _;
     }
     
     // Controlla che l'asta sia iniziata, che la fase di ritiro delle offerte non sia terminata
     // e che la fase di apertura delle buste sia iniziata
     modifier only_when_openBid(){
-        require(started == true, "Asta non iniziata");
-        require(block.number > (bidTimeStart.add(bidTime)).add(withdrawalTime), "Withdrawal Phase non terminata");
-        require(block.number <= ((bidTimeStart.add(bidTime)).add(withdrawalTime)).add(bidOpeningTime), "Open Bid Phase terminata"); _;
+        require(block.number > bidOpeningPhaseStart, "Withdrawal Phase non terminata");
+        require(block.number <= bidOpeningPhaseStart.add(bidOpeningTime), "Open Bid Phase terminata"); _;
     }
     
-     // Controlla che l'asta sia stata avviata
-    modifier only_when_auctionStarted(){
-        require(started == true, "asta non iniziata"); _;
-    }
     
     // Controlla che la funzione sia stata chiamata dal creatore dell'asta
     modifier only_auctioneer(){
@@ -128,9 +139,8 @@ contract Vickrey {
     
     // Controlla che l'asta sia iniziata, che non sia terminata e che la fase di apertura delle buste sia iniziata
     modifier only_when_openBidPhaseEnded(){
-        require(started == true, "Asta non iniziata");
         require(ended == false, "Asta terminata");
-        require(block.number > ((bidTimeStart.add(bidTime)).add(withdrawalTime)).add(bidOpeningTime), "Open Bid Phase non terminata"); _;
+        require(block.number > bidOpeningPhaseStart.add(bidOpeningTime), "Open Bid Phase non terminata"); _;
     }
     
     // Controlla che chi fa l'offerta abbia a disposizione un balance maggiore di 
@@ -146,12 +156,12 @@ contract Vickrey {
     
     /*
         Inizio dell'asta, solamente il creatore dell'asta può avviarla
-    */
     function openAuction() public only_auctioneer(){
         require(started == false);
         started = true;
         bidTimeStart = block.number;
     }
+    */
     
     /*
         Aggiunta di una nuova offerta, possiamo aggiungere l'offerta solamente dopo
@@ -326,8 +336,8 @@ contract Vickrey {
         return bidDeposit;
     }
 
-    function getAllData() public view returns(uint, uint, uint, uint, uint, uint, uint, uint, bool, bool){
-        return (highestBid, secondHighestBid, bidTimeStart, bidTime, withdrawalTime, bidOpeningTime, bidDeposit, reservePrice, ended, started);
+    function getAllData() public view returns(uint, uint, uint, uint, uint, uint, uint, uint, uint, uint, bool, bool, address){
+        return (highestBid, secondHighestBid, bidPhaseStart, withDrawalPhaseStart, bidOpeningPhaseStart, bidTime, withdrawalTime, bidOpeningTime, bidDeposit, reservePrice, ended, started, highestBidder);
     }
  
 }
