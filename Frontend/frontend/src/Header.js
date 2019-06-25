@@ -33,10 +33,7 @@ class App extends Component {
 		var menuItems = ["Home", "Aste concluse", "Le mie aste", "Regolamento"];
 		return (
 			<div>
-				<div className="container">
-					<h1>Hello, World!</h1>
-					<p>Your account: {this.state.account}</p>
-				</div>
+				<div className="container" />
 				<Navbar menuItems={menuItems} links={links} />
 			</div>
 		);

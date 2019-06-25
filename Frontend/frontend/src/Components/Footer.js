@@ -5,13 +5,6 @@ import { ABI_STORAGE, ADDRESS_STORAGE } from "../Ethereum/config.js";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-const footerStyle = {
-	position: "absolute",
-	bottom: "0",
-	width: "100%",
-	height: "50px"
-};
-
 class Footer extends React.Component {
 	constructor(props) {
 		super(props);
@@ -42,6 +35,26 @@ class Footer extends React.Component {
 			this.firstUpdate(data);
 		});
 		subscription.on("data", async (block, error) => {
+			if (this.props.auctionDataNonStarted != undefined) {
+				this.props.auctionDataNonStarted.forEach(element => {
+					if (element.openAuctions_start == block) {
+						this.notify("È stata appena avviata una nuova asta", () => {
+							if (parseInt(element.openAuctions_Type) == 0) {
+								window.open(
+									"/addBid/" + element.openAuctions_ContractAddress,
+									"_self"
+								);
+							} else {
+								window.open(
+									"/addBidVickrey/" + element.openAuctions_ContractAddress,
+									"_self"
+								);
+							}
+						});
+					}
+				});
+			}
+
 			that.blockNumber = block.number;
 
 			this.update(that.blockNumber);
@@ -116,6 +129,7 @@ class Footer extends React.Component {
 							<br />
 							<h6>Development of a Dapp for Smart Auctions</h6>
 							Developed by Luca Corbucci
+							<p>Your account: {this.state.myAccount}</p>
 						</p>
 					</div>
 				</footer>

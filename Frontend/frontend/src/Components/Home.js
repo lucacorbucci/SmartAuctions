@@ -150,7 +150,7 @@ class Home extends React.Component {
 					</div>
 				</div>
 				<br />
-				
+
 				{this.state.loaded == false ? (
 					<div className="columns">
 						<div className="column is-one-half">
@@ -171,19 +171,21 @@ class Home extends React.Component {
 						</div>
 					</div>
 				) : (
-
 					<div>
-						{this.state.auctionData.length != 0 ? <div>
-					<div style={{ textAlign: "center" }}>
-						<h1 className="title is-2">Aste in corso</h1>
-					</div>
-				</div> : <div/>}
-					
-					<div style={{ margin: 10 }}>
-						<TileAsta auctionData={this.state.auctionData} />
-					</div>
-					</div>
+						{this.state.auctionData.length != 0 ? (
+							<div>
+								<div style={{ textAlign: "center" }}>
+									<h1 className="title is-2">Aste in corso</h1>
+								</div>
+							</div>
+						) : (
+							<div />
+						)}
 
+						<div style={{ margin: 10 }}>
+							<TileAsta auctionData={this.state.auctionData} />
+						</div>
+					</div>
 				)}
 				{this.state.auctionDataNonStarted.length != 0 ? (
 					<div>
@@ -220,7 +222,11 @@ class Home extends React.Component {
 					</div>
 				)}
 
-				<Footer onUpdate={this.onUpdate} onBlockNumber={this.onBlockNumber} />
+				<Footer
+					onUpdate={this.onUpdate}
+					onBlockNumber={this.onBlockNumber}
+					auctionDataNonStarted={this.state.auctionDataNonStarted}
+				/>
 			</div>
 		);
 	}

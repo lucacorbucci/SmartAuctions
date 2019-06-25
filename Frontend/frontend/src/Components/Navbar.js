@@ -1,4 +1,4 @@
-import React, { Component } from "react";
+import React from "react";
 import PropTypes from "prop-types";
 
 export default class Navbar extends React.Component {
@@ -23,9 +23,9 @@ export default class Navbar extends React.Component {
 					<div className="navbar-brand">
 						<a className="navbar-item" href={window.location.origin}>
 							<img
-								src="https://bulma.io/images/bulma-logo.png"
-								width="112"
-								height="28"
+								src={require("../Icon/AuctionIcon.png")}
+								width="120"
+								height="35"
 							/>
 						</a>
 						<a

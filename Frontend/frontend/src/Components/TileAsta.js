@@ -1,4 +1,4 @@
-import React, { Component } from "react";
+import React from "react";
 import PropTypes from "prop-types";
 
 export default class TileAsta extends React.Component {
@@ -10,7 +10,6 @@ export default class TileAsta extends React.Component {
 	}
 
 	render() {
-		var index = -1;
 		return (
 			<div>
 				<div className="columns is-multiline is-centered-mobile">

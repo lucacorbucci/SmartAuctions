@@ -10,7 +10,6 @@ import Regolamento from "./Components/Regolamento";
 import AstaInglese from "./Components/englishAuction";
 import AstaVickrey from "./Components/vickreyAuction";
 
-import Footer from "./Components/Footer";
 import AddBid from "./Components/AddBid";
 import AddBidVickrey from "./Components/AddBidVickrey";
 import LeMieAste from "./Components/LeMieAste";

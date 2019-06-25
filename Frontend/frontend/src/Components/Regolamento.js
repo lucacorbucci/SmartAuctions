@@ -20,66 +20,42 @@ class Regolamento extends React.Component {
 					<br />
 					<div class="container">
 						<div class="content is-large">
+							Smart Auction permette la creazione di due tipologie di aste,
+							inglese e Vickrey.
 							<h1 class="title is-1">Tipi di aste</h1>
-							<h1 class="title is-3">Asta inglese</h1>
+							<h1 class="title is-3">Asta inglese 🏴󠁧󠁢󠁥󠁮󠁧󠁿 </h1>
 							<p>
-								Cambia Cavallo che l'erba cresce lei è un cornuto lo sa, cerca
-								di non gufare continuamente? Canà indovini chi le ho preso:
-								Oronzo Canà la iena del tavoliere San Sabino di Canosa fa che
-								non mi succeda qualche altra cosa. Sono 2 giorni che non mangio:
-								bistrò non significa bistrot francese ma due volte stronzo te
-								l'ho detto mille volte di non chiamarmi vecchio. Bistrò non
-								significa bistrot francese ma due volte stronzo, è una famiglia
-								schifosa terrona ignorante maledetta disgrazieta! Certo che tu
-								metti un'allegria muto come un pesce che si è operato alle corde
-								vocheli; laido a me non me lo può dire sa'. Celeste che si
-								riveste; i ricchioni si dividono in due grandi categorie ci dico
-								che hai telefonato in Puglia in teleselezione e sono bastonate.
-								Ti protegge la Madonna dell'Incoronéta; tu sei proprio figlio di
-								puttena Neto ha parlato Alain Delon. Uno che a quarantott'anni
-								viene a Rio a farsi fa l'appendicite, Canà indovini chi le ho
-								preso sua moglie batte a Bologna. Sono quattro ore che stiamo
-								parlando di tagliatelle un caffè con utopia, hai mangiato i
-								tulipani. è una guerra psicologica la nostra sono una persona
-								che gira i mari di tutto il mondo; arbitro sei un cornutaccio.
-								La pediartrite scapolare mi tira il nervo: Aristoteles giocherà
-								col cappotto San Sabino di Canosa fa che non mi succeda qualche
-								altra cosa. Nel mio ufficio non tollero uranisti sono chezzi
-								ameri: questo pelo irto e setoso mica è fecile. A forza di
-								grattarmi mi stai facendo venire l'orchite mi sono sputato in
-								faccia da solo: i maschi e le femmine che sono gli unisex. Se lo
-								prendo lo ammass lo ammazz c'aveva la centrale del Lecce; ti
-								chiami Crisantemi?
+								Nel caso dell'asta inglese, l'utente che vuole mettere in
+								vendita un prodotto sceglie il prezzo di partenza e il minimo
+								incremento che deve essere aggiunto ogni volta che viene
+								effettuata una nuova offerta. L'asta si conclude se per un
+								numero di blocchi deciso dall'utente non vengono inviate nuove
+								offerte di valore più alto delle precedenti. Nell'asta inglese
+								abbiamo anche la possibilità di acquistare il prodotto
+								direttamente senza dover svolgere l'asta, il venditore sceglierà
+								un prezzo per l'acquisto diretto e una volta completato questo
+								tipo di acquisto l'asta terminerà
 							</p>
-							<h1 class="title is-3">Asta Vickrey</h1>
+							<h1 class="title is-3">Asta Vickrey ✅</h1>
 							<p>
-								Cambia Cavallo che l'erba cresce lei è un cornuto lo sa, cerca
-								di non gufare continuamente? Canà indovini chi le ho preso:
-								Oronzo Canà la iena del tavoliere San Sabino di Canosa fa che
-								non mi succeda qualche altra cosa. Sono 2 giorni che non mangio:
-								bistrò non significa bistrot francese ma due volte stronzo te
-								l'ho detto mille volte di non chiamarmi vecchio. Bistrò non
-								significa bistrot francese ma due volte stronzo, è una famiglia
-								schifosa terrona ignorante maledetta disgrazieta! Certo che tu
-								metti un'allegria muto come un pesce che si è operato alle corde
-								vocheli; laido a me non me lo può dire sa'. Celeste che si
-								riveste; i ricchioni si dividono in due grandi categorie ci dico
-								che hai telefonato in Puglia in teleselezione e sono bastonate.
-								Ti protegge la Madonna dell'Incoronéta; tu sei proprio figlio di
-								puttena Neto ha parlato Alain Delon. Uno che a quarantott'anni
-								viene a Rio a farsi fa l'appendicite, Canà indovini chi le ho
-								preso sua moglie batte a Bologna. Sono quattro ore che stiamo
-								parlando di tagliatelle un caffè con utopia, hai mangiato i
-								tulipani. è una guerra psicologica la nostra sono una persona
-								che gira i mari di tutto il mondo; arbitro sei un cornutaccio.
-								La pediartrite scapolare mi tira il nervo: Aristoteles giocherà
-								col cappotto San Sabino di Canosa fa che non mi succeda qualche
-								altra cosa. Nel mio ufficio non tollero uranisti sono chezzi
-								ameri: questo pelo irto e setoso mica è fecile. A forza di
-								grattarmi mi stai facendo venire l'orchite mi sono sputato in
-								faccia da solo: i maschi e le femmine che sono gli unisex. Se lo
-								prendo lo ammass lo ammazz c'aveva la centrale del Lecce; ti
-								chiami Crisantemi?
+								Nel caso dell'asta Vickrey il venditore mette in vendita il
+								prodotto e sceglie quando avviare l'asta, quando l'asta sarà
+								attiva avremo varie fasi:
+								<li>
+									Nella prima fase gli utenti possono inviare una loro offerta
+									sotto forma di hash (hash di un nonce e del valore che
+									intendono offrire). Chi fa l'offerta invia anche una quantità
+									di denaro specificata dal venditore come caparra.
+								</li>
+								<li>
+									Nella seconda fase gli utenti che hanno fatto un'offerta
+									possono ritirarla e riceveranno indietro metà di quanto
+									offerto.
+								</li>
+								<li>
+									Nell'ultima fase poi gli utenti possono rivelare la loro
+									offerta
+								</li>
 							</p>
 						</div>
 					</div>
