@@ -3,9 +3,9 @@ import "node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 contract StorageInterface{
     
-    function addContract(address creator, address contratto, string memory _url, string memory _titolo, uint tipo) public;
+    function addContract(address creator, address contratto, string memory _url, string memory _titolo, uint tipo, uint bloccoInizio) public;
     
-    function removeContract(address contr) public;
+    function removeContract(address contr, address winner) public;
     
     function getAllContracts() public view returns(address[] memory, address[] memory);
     
@@ -99,14 +99,14 @@ contract Vickrey {
 
     
     function addToStorage(address sender, address contractAddress) public returns(bool success){
-        StorageInterface s = StorageInterface(0xf95bB3E0F604a899679C322A32185Cbd0a73c0Ad);
-        s.addContract(sender, contractAddress, URL, title, 1);
+        StorageInterface s = StorageInterface(0x26Ff8ba7f78C226753B8c463c4Bfea37e53AB8fC);
+        s.addContract(sender, contractAddress, URL, title, 1, auctionStart.add(numBlockStart));
         return true;
     }
 
     function removeFromStorage() public returns(bool success){
-        StorageInterface s = StorageInterface(0xf95bB3E0F604a899679C322A32185Cbd0a73c0Ad);
-        s.removeContract(address(this));
+        StorageInterface s = StorageInterface(0x26Ff8ba7f78C226753B8c463c4Bfea37e53AB8fC);
+        s.removeContract(address(this), address(highestBidder));
         return true;
     }
     
@@ -221,8 +221,6 @@ contract Vickrey {
     event LogUint(string, uint);
     
     function openBid(uint _nonce) public payable only_when_openBid()  balanceAvailable(msg.value){
-        require(_nonce == uint(0x6369616f00000000000000000000000000000000000000000000000000000000), "nonce");
-        require(msg.sender == address(0x88a5719D805aEfB4379fFcB736f2608D37Ce5312), "address");
         require(keccak256(abi.encode(_nonce, msg.value)) == bids[msg.sender], "Impossibile aprire");
         
         // Indirizzo a cui va inviato il rimborso
@@ -336,8 +334,7 @@ contract Vickrey {
         return bidDeposit;
     }
 
-    function getAllData() public view returns(uint, uint, uint, uint, uint, uint, uint, uint, uint, uint, bool, bool, address){
-        return (highestBid, secondHighestBid, bidPhaseStart, withDrawalPhaseStart, bidOpeningPhaseStart, bidTime, withdrawalTime, bidOpeningTime, bidDeposit, reservePrice, ended, started, highestBidder);
+    function getAllData() public view returns(uint, string memory, uint, uint, uint, uint, uint, uint, uint, uint, bool, bool, address, address){
+        return (highestBid, title, bidPhaseStart, withDrawalPhaseStart, bidOpeningPhaseStart, bidTime, withdrawalTime, bidOpeningTime, bidDeposit, reservePrice, ended, started, highestBidder, auctioneer);
     }
- 
 }

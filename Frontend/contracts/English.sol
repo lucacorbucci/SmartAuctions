@@ -4,9 +4,9 @@ pragma experimental ABIEncoderV2;
 
 contract StorageInterface{
     
-    function addContract(address creator, address contratto, string memory _url, string memory _titolo, uint tipo) public;
+    function addContract(address creator, address contratto, string memory _url, string memory _titolo, uint tipo, uint bloccoInizio) public;
     
-    function removeContract(address contr) public;
+    function removeContract(address contrAddress, address winner) public;
     
     function getAllContracts() public view returns(address[] memory, address[] memory);
     
@@ -87,14 +87,14 @@ contract englishAuction {
     }
     
     function addToStorage(address sender, address contractAddress) public returns(bool success){
-        StorageInterface s = StorageInterface(0xf95bB3E0F604a899679C322A32185Cbd0a73c0Ad);
-        s.addContract(sender, contractAddress, URL, title, 0);
+        StorageInterface s = StorageInterface(0x26Ff8ba7f78C226753B8c463c4Bfea37e53AB8fC);
+        s.addContract(sender, contractAddress, URL, title, 0, auctionStart.add(numBlockStart));
         return true;
     }
 
     function removeFromStorage() public returns(bool success){
-        StorageInterface s = StorageInterface(0xf95bB3E0F604a899679C322A32185Cbd0a73c0Ad);
-        s.removeContract(address(this));
+        StorageInterface s = StorageInterface(0x26Ff8ba7f78C226753B8c463c4Bfea37e53AB8fC);
+        s.removeContract(address(this), address(highestBidder));
         return true;
     }
     
@@ -214,6 +214,7 @@ contract englishAuction {
         }
     }
     
+    
     /*
         Funzione che può essere chiamata solamente se:
         - l'asta non è già terminata
@@ -257,9 +258,9 @@ contract englishAuction {
         return minIcrement;
     }
 
-    function getAllData() public view returns(uint, uint, uint, uint, bool, bool, uint, uint, uint, uint, address){
+    function getAllData() public view returns(uint, uint, uint, uint, bool, bool, uint, uint, uint, uint, address, string memory){
         
-        return (minIcrement, highestBid, buyoutPrice, reservePrice, ended, buyoutEnded, auctionStart, numBlockStart, startingBlock, minBlocks, highestBidder);
+        return (minIcrement, highestBid, buyoutPrice, reservePrice, ended, buyoutEnded, auctionStart, numBlockStart, startingBlock, minBlocks, highestBidder, title);
     }
 
 

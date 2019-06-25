@@ -1,13 +1,25 @@
 import React from "react";
 import "bulma/css/bulma.css";
-import { VICKREY_ABI } from "../Ethereum/config.js";
+import {
+	VICKREY_ABI,
+	ABI_STORAGE,
+	ADDRESS_STORAGE
+} from "../Ethereum/config.js";
 import Web3 from "web3";
 import abi from "ethereumjs-abi";
 import Footer from "./Footer";
 import { css } from "@emotion/core";
 import { GridLoader } from "react-spinners";
-import ReactNotification from "react-notifications-component";
-import "react-notifications-component/dist/theme.css";
+
+const override = css`
+	display: block;
+	margin: 0 auto;
+	border-color: red;
+`;
+
+const divAllPage = {
+	height: "80vh"
+};
 
 class Concluse extends React.Component {
 	constructor(props) {
@@ -20,7 +32,7 @@ class Concluse extends React.Component {
 			web3: new Web3(Web3.givenProvider || "http://localhost:8545"),
 			blockNumber: "",
 			Phase: -1,
-			bidAmountBid: 0,
+			bidAmountBid: "",
 			Hash: "",
 			Value: 0,
 			NonceBid: "",
@@ -28,14 +40,19 @@ class Concluse extends React.Component {
 			HashRitiro: "",
 			ritirato: false,
 			NonceOpen: "",
-			BidAmountOpen: 0,
+			BidAmountOpen: "",
 			aperta: 0,
 			finalized: false,
 			auctionData: {},
 			numeroBlocco: undefined,
 			started: false,
 			withdrawal: false,
-			opening: false
+			opening: false,
+			myAccount: "",
+			highestBidder: "",
+			loaded: false,
+			title: undefined,
+			map: new Map()
 		};
 
 		var blockNumber = undefined;
@@ -49,6 +66,7 @@ class Concluse extends React.Component {
 		this.checkBlock = this.checkBlock.bind(this);
 		this.finalize = this.finalize.bind(this);
 		this.onBlockNumber = this.onBlockNumber.bind(this);
+		this.cancel = this.cancel.bind(this);
 	}
 
 	onUpdate = val => {
@@ -175,11 +193,34 @@ class Concluse extends React.Component {
 		});
 	}
 
-	componentDidMount() {
+	async componentDidMount() {
 		const contratto = new this.state.web3.eth.Contract(
 			VICKREY_ABI,
 			this.props.match.params.contractAddress
 		);
+
+		const accounts = await this.state.web3.eth.getAccounts();
+		const address = accounts[0];
+
+		contratto.events
+			.HighestBidIncreased()
+			.on("data", event => {
+				console.log(event.id);
+				if (!this.state.map.has(event.id)) {
+					console.log("eevento");
+					console.log(event);
+					if (this.state.myAddress != event.returnValues[0]) {
+						this.notify("Ricevuta una nuova offerta");
+					}
+
+					this.setState({
+						highestBidder: event.returnValues[0]
+					});
+					this.state.map.set(event.id, true);
+				}
+			})
+
+			.on("error", console.error);
 
 		var that = this;
 		contratto.methods
@@ -188,10 +229,10 @@ class Concluse extends React.Component {
 			.then(function(result) {
 				console.log(result);
 				that.setState({
+					myAddress: address,
 					contratto: contratto,
 					auctionData: {
 						highestBid: parseInt(result[0]._hex),
-						secondHighestBid: parseInt(result[1]._hex),
 
 						// quando iniziano le varie fasi
 						bidPhaseStart: parseInt(result[2]._hex),
@@ -206,26 +247,30 @@ class Concluse extends React.Component {
 
 						reservePrice: parseInt(result[9]._hex),
 						isEnded: result[10],
-						highestBidder: result[12]
-					}
+						auctioneer: result[13]
+					},
+					highestBidder: result[12],
+					myAccount: address,
+					loaded: true,
+					title: result[1]
 				});
-
-				console.log(that.state.auctionData.bidPhaseStart);
-				console.log(that.state.auctionData.withDrawalPhaseStart);
-				console.log(that.state.auctionData.bidOpeningPhaseStart);
-				console.log(that.state.auctionData.bidTime);
-				console.log(that.state.auctionData.bidWithdrawalTime);
-				console.log(that.state.auctionData.bidOpeningTime);
-				console.log(that.state.auctionData.bidDeposit);
-				var intervalId = setInterval(() => {
-					console.log(that.state.numeroBlocco);
-				}, 1000);
-
+				console.log(that.state.title);
+				console.log(that.state.loaded);
+				console.log("ciao");
 				that.checkBlock();
-			})
-			.catch(err => {
-				console.log("Failed with error: " + err);
 			});
+
+		var accountInterval = setInterval(async function() {
+			const accounts = await that.state.web3.eth.getAccounts();
+			const address = accounts[0];
+
+			if (address !== that.state.myAccount) {
+				that.setState({
+					myAccount: address
+				});
+			}
+		}, 1000);
+
 		const subscription = this.state.web3.eth.subscribe("newBlockHeaders");
 
 		subscription.on("data", async (block, error) => {
@@ -238,6 +283,7 @@ class Concluse extends React.Component {
 		var hash = this.generateHash();
 		const accounts = await this.state.web3.eth.getAccounts();
 		const address = accounts[0];
+		this.cancel();
 		this.state.contratto.methods
 			.addBid(hash)
 			.send({
@@ -254,6 +300,7 @@ class Concluse extends React.Component {
 	}
 
 	async ritiraBid() {
+		this.cancel();
 		const accounts = await this.state.web3.eth.getAccounts();
 		const address = accounts[0];
 		this.state.contratto.methods
@@ -267,6 +314,16 @@ class Concluse extends React.Component {
 					ritirato: true
 				});
 			});
+	}
+
+	cancel() {
+		this.setState({
+			NonceBid: "",
+			bidAmountBid: 0,
+			NonceOpen: "",
+			BidAmountOpen: 0,
+			HashRitiro: ""
+		});
 	}
 
 	async finalize() {
@@ -292,6 +349,7 @@ class Concluse extends React.Component {
 	async openBid() {
 		const accounts = await this.state.web3.eth.getAccounts();
 		const address = accounts[0];
+
 		var Nonce = this.state.web3.utils.asciiToHex(this.state.NonceOpen, 32);
 		console.log(Nonce);
 		console.log(address);
@@ -310,12 +368,12 @@ class Concluse extends React.Component {
 				this.setState({
 					aperta: true
 				});
+				this.cancel();
 			});
 	}
 
 	closeModal() {
 		this.setState({
-			aperta: false,
 			bidded: false,
 			ritirato: false,
 			finalized: false
@@ -344,303 +402,380 @@ class Concluse extends React.Component {
 					</div>
 				</section>
 				<br />
-				<div className="container control">
-					<div className="columns">
-						<div className="column is-one-third">
-							<p className="image">
-								<img src="https://cdn.corrieredellosport.it/images/2019/06/12/172034860-211f05c4-c44c-4c85-9084-d3f0f1a483ca.jpg" />
-							</p>
-						</div>
-						<div className="column">
-							<div>
-								<h1 className="title is-1">{this.props.match.params.Titolo}</h1>
+				<div style={divAllPage}>
+					<div className="container control">
+						{this.state.loaded == false ? (
+							<div className="columns">
+								<div className="column is-one-half">
+									<div className="GridLoader">
+										<GridLoader
+											css={override}
+											sizeUnit={"px"}
+											size={50}
+											color={"#36D7B7"}
+										/>
+									</div>
+									<br />
+									<br />
+									<br />
+									<br />
+									<br />
+									<br />
+								</div>
 							</div>
-							<br />
-							<div>
-								{this.state.auctionData.isEnded ? (
-									<article className="message is-danger">
-										<div className="message-header">
-											<p>Avviso!</p>
-										</div>
-										<div className="message-body">
-											L'asta è terminata. Impossibile fare altre offerte
-											<br />
-										</div>
-									</article>
-								) : this.state.auctionData.bidPhaseStart <=
-								  this.state.numeroBlocco ? (
-									this.state.numeroBlocco <
-									this.state.auctionData.withDrawalPhaseStart ? (
-										<div>
-											{this.state.bidded ? (
-												<div className="modal is-active">
-													<div
-														className="modal-background"
-														onClick={this.closeModal}
-													/>
-													<div className="modal-card">
-														<header className="modal-card-head">
-															<p className="modal-card-title">
-																Offerta inviata con successo
-															</p>
-															<button
-																className="delete"
+						) : (
+							<div className="columns">
+								<div className="column is-one-third">
+									<p className="image">
+										<img src="https://cdn.corrieredellosport.it/images/2019/06/12/172034860-211f05c4-c44c-4c85-9084-d3f0f1a483ca.jpg" />
+									</p>
+								</div>
+								<div className="column">
+									<div>
+										<h1 className="title is-1">{this.state.title}</h1>
+									</div>
+									<br />
+									<div>
+										{this.state.auctionData.isEnded ? (
+											<article className="message is-danger">
+												<div className="message-header">
+													<p>Avviso!</p>
+												</div>
+												<div className="message-body">
+													L'asta è terminata. Impossibile fare altre offerte
+													<br />
+												</div>
+											</article>
+										) : this.state.auctionData.bidPhaseStart <=
+										  this.state.numeroBlocco ? (
+											this.state.numeroBlocco <
+											this.state.auctionData.withDrawalPhaseStart ? (
+												<div>
+													{this.state.bidded ? (
+														<div className="modal is-active">
+															<div
+																className="modal-background"
 																onClick={this.closeModal}
 															/>
-														</header>
-														<section className="modal-card-body">
-															<div className="content">
-																<b>L'hash della tua offerta:</b>{" "}
-																{this.state.Hash}
+															<div className="modal-card">
+																<header className="modal-card-head">
+																	<p className="modal-card-title">
+																		Offerta inviata con successo
+																	</p>
+																	<button
+																		className="delete"
+																		onClick={this.closeModal}
+																	/>
+																</header>
+																<section className="modal-card-body">
+																	<div className="content">
+																		<b>L'hash della tua offerta:</b>{" "}
+																		{this.state.Hash}
+																	</div>
+																</section>
 															</div>
-														</section>
+														</div>
+													) : (
+														<div />
+													)}
+													<h1 className="title is-4">Fai un'offerta</h1>
+													<div class="tile is-parent">
+														<article class="tile is-child notification is-primary">
+															<p class="subtitle">
+																Inserisci l'importo che vuoi scommettere e una
+																parola segreta, l'offerta che verrà inviata sarà
+																l'hash dell'importo e del nonce. Una volta
+																inviata l'offerta ti indicheremo l'hash che la
+																identifica, memorizzalo perchè ti servirà in
+																seguito.
+															</p>
+														</article>
+													</div>
+													<div class="content" />
+													<div className="column is-half is-offset-one-quarter">
+														<div className="field has-addons">
+															<p className="control">
+																<p className="button ">Nonce</p>
+															</p>
+															<input
+																className="input"
+																type="text"
+																onChange={this.handleInputChange}
+																placeholder="1000000000000000000"
+																name={"NonceBid"}
+																value={this.state.NonceBid}
+															/>
+														</div>
+														<div className="field has-addons">
+															<p className="control">
+																<p className="button ">Wei </p>
+															</p>
+															<input
+																className="input"
+																type="text"
+																onChange={this.handleInputChange}
+																placeholder="1000000000000000000"
+																name="bidAmountBid"
+																value={this.state.bidAmountBid}
+															/>
+														</div>
+														<div className="column is-half is-offset-one-quarter">
+															<p className="control">
+																<a
+																	className="button is-link"
+																	onClick={this.addBid}
+																>
+																	Invia la tua offerta
+																</a>
+															</p>
+														</div>
 													</div>
 												</div>
-											) : (
-												<div />
-											)}
-											<h1 className="title is-4">Fai un'offerta</h1>
-											<div class="tile is-parent">
-												<article class="tile is-child notification is-primary">
-													<p class="subtitle">
-														Inserisci l'importo che vuoi scommettere e una
-														parola segreta, l'offerta che verrà inviata sarà
-														l'hash dell'importo e del nonce. Una volta inviata
-														l'offerta ti indicheremo l'hash che la identifica,
-														memorizzalo perchè ti servirà in seguito.
-													</p>
-												</article>
-											</div>
-											<div class="content" />
-											<div className="column is-half is-offset-one-quarter">
-												<div className="field has-addons">
-													<p className="control">
-														<p className="button ">Nonce</p>
-													</p>
-													<input
-														className="input"
-														type="text"
-														onChange={this.handleInputChange}
-														placeholder="1000000000000000000"
-														name={"NonceBid"}
-													/>
-												</div>
-												<div className="field has-addons">
-													<p className="control">
-														<p className="button ">Wei </p>
-													</p>
-													<input
-														className="input"
-														type="text"
-														onChange={this.handleInputChange}
-														placeholder="1000000000000000000"
-														name={"bidAmountBid"}
-													/>
-												</div>
-												<div className="column is-half is-offset-one-quarter">
-													<p className="control">
-														<a className="button is-link" onClick={this.addBid}>
-															Invia la tua offerta
-														</a>
-													</p>
-												</div>
-											</div>
-										</div>
-									) : this.state.auctionData.withDrawalPhaseStart <=
-											this.state.numeroBlocco &&
-									  this.state.numeroBlocco <
-											this.state.auctionData.bidOpeningPhaseStart ? (
-										<div>
-											<h1 className="title is-4">Ritira la tua offerta</h1>
-											<div class="tile is-parent">
-												<article class="tile is-child notification is-primary">
-													<p class="subtitle">
-														Inserisci l'hash dell'offerta che hai effettuato in
-														precedenza per ritirarla.
-													</p>
-												</article>
-											</div>
-											{this.state.ritirato ? (
-												<div className="modal is-active">
-													<div
-														className="modal-background"
-														onClick={this.closeModal}
-													/>
-													<div className="modal-card">
-														<header className="modal-card-head">
-															<p className="modal-card-title">
-																Offerta ritirata con successo
+											) : this.state.auctionData.withDrawalPhaseStart <=
+													this.state.numeroBlocco &&
+											  this.state.numeroBlocco <
+													this.state.auctionData.bidOpeningPhaseStart ? (
+												<div>
+													<h1 className="title is-4">Ritira la tua offerta</h1>
+													<div class="tile is-parent">
+														<article class="tile is-child notification is-primary">
+															<p class="subtitle">
+																Inserisci l'hash dell'offerta che hai effettuato
+																in precedenza per ritirarla.
 															</p>
-															<button
-																className="delete"
+														</article>
+													</div>
+													{this.state.ritirato ? (
+														<div className="modal is-active">
+															<div
+																className="modal-background"
 																onClick={this.closeModal}
 															/>
-														</header>
-														<section className="modal-card-body">
-															<div className="content">
-																<b>
-																	Ti abbiamo riaccreditato metà del deposito che
-																	hai inviato in precedenza
-																</b>
+															<div className="modal-card">
+																<header className="modal-card-head">
+																	<p className="modal-card-title">
+																		Offerta ritirata con successo
+																	</p>
+																	<button
+																		className="delete"
+																		onClick={this.closeModal}
+																	/>
+																</header>
+																<section className="modal-card-body">
+																	<div className="content">
+																		<b>
+																			Ti abbiamo riaccreditato metà del deposito
+																			che hai inviato in precedenza
+																		</b>
+																	</div>
+																</section>
 															</div>
-														</section>
+														</div>
+													) : (
+														<div />
+													)}
+
+													<div class="content" />
+													<div className="column is-half is-offset-one-quarter">
+														<div className="field has-addons">
+															<p className="control">
+																<p className="button ">Hash</p>
+															</p>
+															<input
+																className="input"
+																type="text"
+																onChange={this.handleInputChange}
+																placeholder="0x806a017E66E6af90018D4EBa0FFEA7f4d5FDa073"
+																name={"HashRitiro"}
+																value={this.state.HashRitiro}
+															/>
+															<p className="control">
+																<a
+																	className="button is-link"
+																	onClick={this.ritiraBid}
+																>
+																	Ritira Offerta
+																</a>
+															</p>
+														</div>
 													</div>
 												</div>
-											) : (
-												<div />
-											)}
-
-											<div class="content" />
-											<div className="column is-half is-offset-one-quarter">
-												<div className="field has-addons">
-													<p className="control">
-														<p className="button ">Hash</p>
-													</p>
-													<input
-														className="input"
-														type="text"
-														onChange={this.handleInputChange}
-														placeholder="0x806a017E66E6af90018D4EBa0FFEA7f4d5FDa073"
-														name={"HashRitiro"}
-													/>
-													<p className="control">
-														<a
-															className="button is-link"
-															onClick={this.ritiraBid}
-														>
-															Ritira Offerta
-														</a>
-													</p>
-												</div>
-											</div>
-										</div>
-									) : this.state.auctionData.bidOpeningPhaseStart <=
-											this.state.numeroBlocco &&
-									  this.state.numeroBlocco <
-											this.state.auctionData.bidOpeningPhaseStart +
-												this.state.auctionData.bidOpeningTime ? (
-										<div>
-											<h1 className="title is-4">Rivela la tua offerta</h1>
-											<div class="tile is-parent">
-												<article class="tile is-child notification is-primary">
-													<p class="subtitle">
-														Inserisci il nonce e la quantità di denaro che hai
-														offerto, in questo modo potremo rivelare la tua
-														offerta per scoprire se hai vinto.
-													</p>
-												</article>
-											</div>
-											<div class="content" />
-
-											<div class="content" />
-											<div className="column is-half is-offset-one-quarter">
-												<div className="field has-addons">
-													<p className="control">
-														<p className="button ">Nonce</p>
-													</p>
-													<input
-														className="input"
-														type="text"
-														onChange={this.handleInputChange}
-														placeholder="1000000000000000000"
-														name={"NonceOpen"}
-													/>
-												</div>
-												<div className="field has-addons">
-													<p className="control">
-														<p className="button ">Wei </p>
-													</p>
-													<input
-														className="input"
-														type="text"
-														onChange={this.handleInputChange}
-														placeholder="1000000000000000000"
-														name={"BidAmountOpen"}
-													/>
-												</div>
-												<div className="column is-half is-offset-one-quarter">
-													<p className="control">
-														<a
-															className="button is-link"
-															onClick={this.openBid}
-														>
+											) : this.state.auctionData.bidOpeningPhaseStart <=
+													this.state.numeroBlocco &&
+											  this.state.numeroBlocco <
+													this.state.auctionData.bidOpeningPhaseStart +
+														this.state.auctionData.bidOpeningTime ? (
+												this.state.aperta ? (
+													this.state.highestBidder != this.state.myAccount ? (
+														<div>
+															<h1 className="title is-4">
+																Hai rivelato la tua offerta
+															</h1>
+															<div class="tile is-parent">
+																<article class="tile is-child notification is-primary">
+																	<p class="subtitle">
+																		La tua offerta è stata superata. Hai perso.
+																	</p>
+																</article>
+															</div>
+														</div>
+													) : (
+														<div>
+															<h1 className="title is-4">
+																Hai rivelato la tua offerta
+															</h1>
+															<div class="tile is-parent">
+																<article class="tile is-child notification is-primary">
+																	<p class="subtitle">
+																		Attualmente la tua offerta è la più alta che
+																		è stata inviata.
+																	</p>
+																</article>
+															</div>
+														</div>
+													)
+												) : (
+													<div>
+														<h1 className="title is-4">
 															Rivela la tua offerta
-														</a>
-													</p>
-												</div>
-											</div>
-										</div>
-									) : (
-										<div>
-											<h1 className="title is-4">Completa l'asta</h1>
-											{this.state.finalized ? (
-												<div className="modal is-active">
-													<div
-														className="modal-background"
-														onClick={this.closeModal}
-													/>
-													<div className="modal-card">
-														<header className="modal-card-head">
-															<p className="modal-card-title">
-																L'asta è stata terminata con successo
-															</p>
-															<button
-																className="delete"
+														</h1>
+														<div class="tile is-parent">
+															<article class="tile is-child notification is-primary">
+																<p class="subtitle">
+																	Inserisci il nonce e la quantità di denaro che
+																	hai offerto, in questo modo potremo rivelare
+																	la tua offerta per scoprire se hai vinto.
+																</p>
+															</article>
+														</div>
+														<div class="content" />
+
+														<div class="content" />
+														<div className="column is-half is-offset-one-quarter">
+															<div className="field has-addons">
+																<p className="control">
+																	<p className="button ">Nonce</p>
+																</p>
+																<input
+																	className="input"
+																	type="text"
+																	onChange={this.handleInputChange}
+																	placeholder="1000000000000000000"
+																	name={"NonceOpen"}
+																	value={this.state.NonceOpen}
+																/>
+															</div>
+															<div className="field has-addons">
+																<p className="control">
+																	<p className="button ">Wei </p>
+																</p>
+																<input
+																	className="input"
+																	type="text"
+																	onChange={this.handleInputChange}
+																	placeholder="1000000000000000000"
+																	name={"BidAmountOpen"}
+																	value={this.state.BidAmountOpen}
+																/>
+															</div>
+															<div className="column is-half is-offset-one-quarter">
+																<p className="control">
+																	<a
+																		className="button is-link"
+																		onClick={this.openBid}
+																	>
+																		Rivela la tua offerta
+																	</a>
+																</p>
+															</div>
+														</div>
+													</div>
+												)
+											) : (
+												<div>
+													<h1 className="title is-4">Completa l'asta</h1>
+													{this.state.finalized ? (
+														<div className="modal is-active">
+															<div
+																className="modal-background"
 																onClick={this.closeModal}
 															/>
-														</header>
-														<section className="modal-card-body">
-															<div className="content">
-																<b>
-																	Il vincitore e il secondo classificato hanno
-																	ricevuto il rimborso che gli spettava.
-																</b>
+															<div className="modal-card">
+																<header className="modal-card-head">
+																	<p className="modal-card-title">
+																		L'asta è stata terminata con successo
+																	</p>
+																	<button
+																		className="delete"
+																		onClick={this.closeModal}
+																	/>
+																</header>
+																<section className="modal-card-body">
+																	<div className="content">
+																		<b>
+																			Il vincitore e il secondo classificato
+																			hanno ricevuto il rimborso che gli
+																			spettava.
+																		</b>
+																	</div>
+																</section>
 															</div>
-														</section>
+														</div>
+													) : (
+														<div />
+													)}
+													<div class="tile is-parent">
+														<article class="tile is-child notification is-primary">
+															<p class="subtitle">
+																La fase di apertura delle buste è stata
+																completata.{" "}
+																{this.state.highestBidder ===
+																this.state.myAccount
+																	? "Sei il vincitore quindi puoi finalizzare l'asta"
+																	: this.state.auctionData.auctioneer ===
+																	  this.state.myAccount
+																	? "Sei il creatore dell'asta quindi puoi finalizzarla"
+																	: "Non hai vinto"}
+															</p>
+														</article>
 													</div>
+													<div class="content" />
+													<div class="content" />
+													{this.state.highestBidder == this.state.myAccount ||
+													this.state.auctionData.auctioneer ==
+														this.state.myAccount ? (
+														<div className="column is-half is-offset-one-quarter">
+															<div className="column is-half is-offset-one-quarter">
+																<p className="control">
+																	<a
+																		className="button is-link"
+																		onClick={this.finalize}
+																	>
+																		Finalizza l'asta
+																	</a>
+																</p>
+															</div>
+														</div>
+													) : (
+														<div />
+													)}
 												</div>
-											) : (
-												<div />
-											)}
-											<div class="tile is-parent">
-												<article class="tile is-child notification is-primary">
-													<p class="subtitle">
-														La fase di apertura delle buste è stata completata,
-														se sei il vincitore o il creatore, puoi terminare
-														l'asta.
-													</p>
-												</article>
-											</div>
-											<div class="content" />
-
-											<div class="content" />
-											<div className="column is-half is-offset-one-quarter">
-												<div className="column is-half is-offset-one-quarter">
-													<p className="control">
-														<a
-															className="button is-link"
-															onClick={this.finalize}
-														>
-															Finalizza l'asta
-														</a>
-													</p>
+											)
+										) : (
+											<article className="message is-danger">
+												<div className="message-header">
+													<p>Avviso!</p>
 												</div>
-											</div>
-										</div>
-									)
-								) : (
-									<article className="message is-danger">
-										<div className="message-header">
-											<p>Avviso!</p>
-										</div>
-										<div className="message-body">
-											Asta non ancora avviata. Attendere.
-											<br />
-										</div>
-									</article>
-								)}
+												<div className="message-body">
+													Asta non ancora avviata. Attendere.
+													<br />
+												</div>
+											</article>
+										)}
+									</div>
+								</div>
 							</div>
-						</div>
+						)}
 					</div>
 				</div>
 				<Footer onUpdate={this.onUpdate} onBlockNumber={this.onBlockNumber} />

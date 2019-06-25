@@ -5,8 +5,8 @@ import Web3 from "web3";
 import Footer from "./Footer";
 import { css } from "@emotion/core";
 import { GridLoader } from "react-spinners";
-import ReactNotification from "react-notifications-component";
-import "react-notifications-component/dist/theme.css";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const override = css`
 	display: block;
@@ -18,41 +18,70 @@ const divAllPage = {
 	height: "80vh"
 };
 
+function validate(bidAmount) {
+	return {
+		bidAmount: bidAmount.length === 0 || isNaN(bidAmount) || bidAmount < 0
+	};
+}
+
 class Concluse extends React.Component {
 	constructor(props) {
 		super(props);
 		this.state = {
 			hovered: false,
 			myAddress: "",
-			auctionData: {},
 			contratto: "",
-			bidAmount: 0,
+			bidAmount: "",
 			web3: new Web3(Web3.givenProvider || "http://localhost:8545"),
 			numeroBlocco: 0,
 			started: false,
 			finalized: false,
-			lastOffer: 0,
 			loaded: false,
 			bidded: false,
 			myOffer: undefined,
 			highestBidder: "",
-			highestBid: undefined
+			highestBid: undefined,
+			isDirectEnded: false,
+			minIncrement: undefined,
+			highestBid: undefined,
+			buyoutPrice: undefined,
+			reservePrice: undefined,
+			isEnded: undefined,
+
+			auctionStart: undefined,
+			blocchiStart: undefined,
+			lastOfferBlock: undefined,
+			numBlockLastOffer: undefined,
+			title: undefined,
+			map: new Map(),
+			mapInput: {
+				bidAmount: false
+			}
 		};
+
 		this.AcquistaDiretto = this.AcquistaDiretto.bind(this);
 		this.addBid = this.addBid.bind(this);
 		this.handleInputChange = this.handleInputChange.bind(this);
 		this.onBlockNumber = this.onBlockNumber.bind(this);
 		this.finalize = this.finalize.bind(this);
-		this.addNotification = this.addNotification.bind(this);
-		this.notificationDOMRef = React.createRef();
+		this.notify = this.notify.bind(this);
+
 		var blockNumber = 0;
 	}
 
+	cancel() {
+		this.setState({
+			bidAmount: ""
+		});
+	}
+
 	onUpdate = val => {
+		console.log(this.state.lastOfferBlock);
+		console.log(this.state.numBlockLastOffer);
+		console.log(this.state.numeroBlocco);
+		console.log("val" + val);
 		if (
-			this.state.auctionData.auctionStart +
-				this.state.auctionData.blocchiStart <=
-				val &&
+			this.state.auctionStart + this.state.blocchiStart <= val &&
 			this.state.started == false
 		) {
 			this.setState({
@@ -61,10 +90,8 @@ class Concluse extends React.Component {
 			});
 		}
 		if (
-			this.state.auctionData.lastOfferBlock != 0 &&
-			this.state.auctionData.lastOfferBlock +
-				this.state.auctionData.numBlockLastOffer <
-				val
+			this.state.lastOfferBlock != 0 &&
+			this.state.lastOfferBlock + this.state.numBlockLastOffer < val
 		) {
 			this.setState({
 				numeroBlocco: val
@@ -74,25 +101,71 @@ class Concluse extends React.Component {
 	};
 
 	onBlockNumber(val) {
+		console.log("val" + val);
+
 		this.setState({
-			numeroBlocco: val,
-			loaded: true
+			numeroBlocco: val
 		});
 		this.blockNumber = val;
 	}
 
-	addNotification(title, text) {
-		this.notificationDOMRef.current.addNotification({
-			title: title,
-			message: text,
-			type: "info",
-			insert: "top",
-			container: "top-right",
-			animationIn: ["animated", "fadeIn"],
-			animationOut: ["animated", "fadeOut"],
-			dismiss: { duration: 2000 },
-			dismissable: { click: true }
-		});
+	notify = (text, func) => {
+		const options = {
+			autoClose: 6000,
+			type: toast.TYPE.SUCCESS,
+			position: toast.POSITION.TOP_RIGHT,
+			pauseOnHover: true,
+			closeButton: true,
+			closeOnClick: true,
+			onClick: func
+		};
+		toast(text, options);
+	};
+
+	componentDidMount() {
+		const contratto = new this.state.web3.eth.Contract(
+			ENGLISH_ABI,
+			this.props.match.params.contractAddress
+		);
+
+		contratto.events
+			.HighestBidIncreased()
+			.on("data", event => {
+				console.log(event.id);
+				if (!this.state.map.has(event.id)) {
+					console.log("eevento");
+					console.log(event);
+					if (this.state.myAddress != event.returnValues[0]) {
+						this.notify(
+							"Nuova Offerta ricevuta, rilancia per non perdere la possibilità di vincere l'asta"
+						);
+					}
+
+					this.setState({
+						highestBidder: event.returnValues[0],
+						highestBid: parseInt(event.returnValues[1]._hex)
+					});
+					this.state.map.set(event.id, true);
+				}
+			})
+
+			.on("error", console.error);
+
+		contratto.events
+			.AuctionEnded()
+			.on("data", event => {
+				if (!this.state.map.has(event.id)) {
+					this.notify("L'asta è terminata ed è stata finalizzata");
+					this.setState({
+						highestBidder: event.returnValues[0],
+						highestBid: parseInt(event.returnValues[1]._hex),
+						isEnded: true
+					});
+					this.state.map.set(event.id, true);
+				}
+			})
+
+			.on("error", console.error);
 	}
 
 	async componentWillMount() {
@@ -103,54 +176,6 @@ class Concluse extends React.Component {
 		const accounts = await this.state.web3.eth.getAccounts();
 		const address = accounts[0];
 
-		contratto.events
-			.HighestBidIncreased()
-			.on("data", event => {
-				this.addNotification(
-					"Nuova Offerta ricevuta",
-					"Rilancia per non perdere la possibilità di vincere l'asta"
-				);
-				console.log(this.state.highestBidder);
-				this.setState({
-					highestBidder: event.returnValues[0],
-					highestBid: parseInt(event.returnValues[1]._hex)
-				});
-				console.log(this.state.highestBidder);
-
-				console.log(this.state.highestBidder == this.state.myAddress);
-
-				console.log(this.state.highestBidder === this.state.myAddress);
-				console.log(this.state.highestBidder + "" == this.state.myAddress + "");
-				console.log(this.state.myAddress);
-				console.log(event.returnValues[0]); // same results as the optional callback above
-			})
-
-			.on("error", console.error);
-
-		contratto.events
-			.AuctionEnded()
-			.on("data", event => {
-				this.addNotification("Asta terminata", "L'asta è stata finalizzata");
-
-				this.setState({
-					highestBidder: event.returnValues[0],
-					highestBid: parseInt(event.returnValues[1]._hex),
-					auctionData: {
-						isEnded: true
-					}
-				});
-				console.log(this.state.highestBidder);
-
-				console.log(this.state.highestBidder == this.state.myAddress);
-
-				console.log(this.state.highestBidder === this.state.myAddress);
-				console.log(this.state.highestBidder + "" == this.state.myAddress + "");
-				console.log(this.state.myAddress);
-				console.log(event.returnValues[0]); // same results as the optional callback above
-			})
-
-			.on("error", console.error);
-
 		var that = this;
 		contratto.methods
 			.getAllData()
@@ -159,19 +184,22 @@ class Concluse extends React.Component {
 				that.setState({
 					myAddress: address,
 					contratto: contratto,
-					auctionData: {
-						minIncrement: parseInt(result[0]._hex),
-						highestBid: parseInt(result[1]._hex),
-						buyoutPrice: parseInt(result[2]._hex),
-						reservePrice: parseInt(result[3]._hex),
-						isEnded: result[4],
-						isDirectEnded: result[5],
-						auctionStart: parseInt(result[6]),
-						blocchiStart: parseInt(result[7]),
-						lastOfferBlock: parseInt(result[8]),
-						numBlockLastOffer: parseInt(result[9])
-					},
-					highestBidder: result[10]
+
+					minIncrement: parseInt(result[0]._hex),
+					highestBid: parseInt(result[1]._hex),
+					buyoutPrice: parseInt(result[2]._hex),
+					reservePrice: parseInt(result[3]._hex),
+					isEnded: result[4],
+
+					auctionStart: parseInt(result[6]),
+					blocchiStart: parseInt(result[7]),
+					lastOfferBlock: parseInt(result[8]),
+					numBlockLastOffer: parseInt(result[9]),
+
+					isDirectEnded: result[5],
+					highestBidder: result[10],
+					title: result[11],
+					loaded: true
 				});
 			})
 			.catch(err => {
@@ -191,20 +219,24 @@ class Concluse extends React.Component {
 			.on("confirmation", (confirmationNumber, receipt) => {
 				this.setState({
 					lastOffer: receipt.blockNumber,
-					myOffer: this.state.bidAmount
+					myOffer: this.state.bidAmount,
+					isDirectEnded: true,
+					lastOfferBlock: receipt.blockNumber
 				});
 			});
+		this.cancel();
 	}
 
 	async AcquistaDiretto() {
 		const accounts = await this.state.web3.eth.getAccounts();
 		const address = accounts[0];
+		console.log(this.state.buyoutPrice);
 
 		this.state.contratto.methods
 			.acquistoDiretto()
 			.send({
 				from: address,
-				value: this.state.auctionData.buyoutPrice
+				value: this.state.buyoutPrice
 			})
 			.on("confirmation", (confirmationNumber, receipt) => {
 				console.log("acquistato direttamente");
@@ -215,12 +247,13 @@ class Concluse extends React.Component {
 	}
 
 	handleInputChange(event) {
-		console.log(this.state.isEnded);
-		console.log(this.state.numeroBlocco);
-		console.log(this.state.auctionData.numBlockLastOffer);
-
 		const target = event.target;
 		const value = target.value;
+		const name = target.name;
+
+		this.state.mapInput[name] = true;
+		console.log(this.state.mapInput[name]);
+
 		this.setState({
 			bidAmount: value
 		});
@@ -237,19 +270,18 @@ class Concluse extends React.Component {
 			.on("confirmation", (confirmationNumber, receipt) => {
 				this.setState({
 					finalized: true,
-					auctionData: {
-						isEnded: true
-					}
+					isEnded: true
 				});
 			});
 	}
 
 	render() {
+		const errors = validate(this.state.bidAmount);
+		const isDisabled = Object.keys(errors).some(x => errors[x]);
+
 		return (
 			<div className="contentp">
-				<div className="app-content">
-					<ReactNotification ref={this.notificationDOMRef} />
-				</div>
+				<div className="app-content" />
 				<section className="hero is-primary is-bold">
 					<div className="hero-body">
 						<div className="container">
@@ -288,13 +320,11 @@ class Concluse extends React.Component {
 								</div>
 								<div className="column">
 									<div>
-										<h1 className="title is-1">
-											{this.props.match.params.Titolo}
-										</h1>
+										<h1 className="title is-1">{this.state.title}</h1>
 									</div>
 									<br />
 									<div>
-										{this.state.auctionData.isEnded ? (
+										{this.state.isEnded ? (
 											<article className="message is-danger">
 												<div className="message-header">
 													<p>Avviso!</p>
@@ -304,9 +334,8 @@ class Concluse extends React.Component {
 													<br />
 												</div>
 											</article>
-										) : this.state.auctionData.lastOfferBlock != 0 &&
-										  this.state.auctionData.lastOfferBlock +
-												this.state.auctionData.numBlockLastOffer <
+										) : this.state.lastOfferBlock != 0 &&
+										  this.state.lastOfferBlock + this.state.numBlockLastOffer <
 												this.state.numeroBlocco ? (
 											<div>
 												<h1 className="title is-4">Completa l'asta</h1>
@@ -336,8 +365,7 @@ class Concluse extends React.Component {
 													</div>
 												</div>
 											</div>
-										) : this.state.auctionData.auctionStart +
-												this.state.auctionData.blocchiStart <=
+										) : this.state.auctionStart + this.state.blocchiStart <=
 										  this.state.numeroBlocco ? (
 											<div>
 												<h1 className="title is-4">Fai un'offerta</h1>
@@ -346,20 +374,17 @@ class Concluse extends React.Component {
 														<p className="subtitle">
 															{this.state.highestBidder === this.state.myAddress
 																? "Attualmente sei il vincitore dell'asta"
-																: this.state.auctionData.highestBid > 0
+																: this.state.highestBid > 0
 																? "Ehi, ci sono già delle offerte per questo prodotto. Offri almeno " +
 																  parseInt(
 																		parseInt(
 																			this.state.highestBid != undefined
 																				? this.state.highestBid
-																				: this.state.auctionData.highestBid
-																		) +
-																			parseInt(
-																				this.state.auctionData.minIncrement
-																			)
+																				: this.state.highestBid
+																		) + parseInt(this.state.minIncrement)
 																  )
 																: "Nessuno ha ancora fatto un'offerta, vuoi essere il primo? Offri almeno " +
-																  this.state.auctionData.reservePrice +
+																  this.state.reservePrice +
 																  " Wei per partecipare all'asta!"}
 														</p>
 													</article>
@@ -372,32 +397,34 @@ class Concluse extends React.Component {
 															<p className="button ">Wei</p>
 														</p>
 														<input
-															className="input"
+															className={
+																this.state.mapInput.bidAmount == false
+																	? "input"
+																	: errors.bidAmount == true
+																	? "input is-danger"
+																	: "input"
+															}
 															type="text"
 															onChange={this.handleInputChange}
 															placeholder={
-																this.state.auctionData.highestBid > 0
+																this.state.highestBid > 0
 																	? parseInt(
-																			parseInt(
-																				this.state.auctionData.highestBid
-																			) +
-																				parseInt(
-																					this.state.auctionData.minIncrement
-																				)
+																			parseInt(this.state.highestBid) +
+																				parseInt(this.state.minIncrement)
 																	  )
-																	: parseInt(
-																			this.state.auctionData.reservePrice
-																	  )
+																	: parseInt(this.state.reservePrice)
 															}
-															name={this.state.bidAmount}
+															name="bidAmount"
+															value={this.state.bidAmount}
 														/>
 														<p className="control">
-															<a
+															<button
 																className="button is-link"
 																onClick={this.addBid}
+																disabled={isDisabled}
 															>
 																Invia offerta
-															</a>
+															</button>
 														</p>
 													</div>
 												</div>
@@ -408,7 +435,7 @@ class Concluse extends React.Component {
 													<h1 className="title is-4">
 														Oppure acquista direttamente
 													</h1>
-													{!this.state.auctionData.isDirectEnded ? (
+													{!this.state.isDirectEnded ? (
 														// se ancora posso fare un acquisto diretto
 														<a
 															className="button is-link"

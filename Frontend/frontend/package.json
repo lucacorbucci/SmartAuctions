@@ -12,6 +12,7 @@
     "react-particles-js": "^2.6.0",
     "react-router-dom": "^5.0.1",
     "react-scripts": "3.0.1",
+    "truffle-hdwallet-provider": "^1.0.11",
     "web3": "^1.0.0-beta.55"
   },
   "scripts": {

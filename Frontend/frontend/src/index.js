@@ -13,6 +13,7 @@ import AstaVickrey from "./Components/vickreyAuction";
 import Footer from "./Components/Footer";
 import AddBid from "./Components/AddBid";
 import AddBidVickrey from "./Components/AddBidVickrey";
+import LeMieAste from "./Components/LeMieAste";
 
 const routing = (
 	<Router>
@@ -26,9 +27,11 @@ const routing = (
 			<Route path="/regolamento" component={Regolamento} />
 			<Route path="/addAstaInglese" component={AstaInglese} />
 			<Route path="/addAstaVickrey" component={AstaVickrey} />
-			<Route path="/addBid/:contractAddress/:Titolo/" component={AddBid} />
+			<Route path="/addBid/:contractAddress/" component={AddBid} />
+			<Route path="/lemieaste" component={LeMieAste} />
+
 			<Route
-				path="/addBidVickrey/:contractAddress/:Titolo/"
+				path="/addBidVickrey/:contractAddress/"
 				component={AddBidVickrey}
 			/>
 		</div>

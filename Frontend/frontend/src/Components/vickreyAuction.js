@@ -4,6 +4,47 @@ import Web3 from "web3";
 import { VICKREY_DATA, VICKREY_ABI } from "../Ethereum/config.js";
 import Modal from "react-modal";
 import Footer from "./Footer";
+import { css } from "@emotion/core";
+import { PacmanLoader } from "react-spinners";
+
+const override = css`
+	display: block;
+	margin: 0 auto;
+	border-color: red;
+`;
+
+function validate(
+	Nome,
+	url,
+	baseAsta,
+	bidPhaseLength,
+	withdrawalPhaseLength,
+	bidOpeningPhaseLength,
+	bidDeposit,
+	numBlockStart
+) {
+	console.log("cal");
+	return {
+		Nome: Nome.length === 0,
+		url: url.length === 0,
+		baseAsta: baseAsta.length === 0 || isNaN(baseAsta) || baseAsta < 0,
+		bidPhaseLength:
+			bidPhaseLength.length === 0 ||
+			isNaN(bidPhaseLength) ||
+			bidPhaseLength < 0,
+		withdrawalPhaseLength:
+			withdrawalPhaseLength.length === 0 ||
+			isNaN(withdrawalPhaseLength) ||
+			withdrawalPhaseLength < 0,
+		bidOpeningPhaseLength:
+			bidOpeningPhaseLength.length === 0 ||
+			isNaN(bidOpeningPhaseLength) ||
+			bidOpeningPhaseLength < 0,
+		bidDeposit: bidDeposit.length === 0 || isNaN(bidDeposit) || bidDeposit < 0,
+		numBlockStart:
+			numBlockStart.length === 0 || isNaN(numBlockStart) || numBlockStart < 0
+	};
+}
 
 class VickreyAuction extends React.Component {
 	constructor(props) {
@@ -20,7 +61,19 @@ class VickreyAuction extends React.Component {
 			bidOpeningPhaseLength: "",
 			bidDeposit: "",
 			contractCreated: false,
-			numBlockStart: ""
+			numBlockStart: "",
+			mapInput: {
+				Nome: false,
+				url: false,
+				baseAsta: false,
+				bidPhaseLength: false,
+				withdrawalPhaseLength: false,
+				bidOpeningPhaseLength: false,
+				bidDeposit: false,
+				numBlockStart: false
+			},
+			onSubmit: false,
+			errore: false
 		};
 		this.handleClick = this.handleClick.bind(this);
 		this.handleInputChange = this.handleInputChange.bind(this);
@@ -47,17 +100,12 @@ class VickreyAuction extends React.Component {
 	}
 
 	async handleClick() {
-		console.log(this.state.Nome);
-		console.log(this.state.url);
-		console.log(this.state.baseAsta);
-		console.log(this.state.bidPhaseLength);
-		console.log(this.state.withdrawalPhaseLength);
-		console.log(this.state.bidOpeningPhaseLength);
-		console.log(this.state.bidDeposit);
-
 		const web3 = new Web3(Web3.givenProvider || "http://localhost:8545");
 		const accounts = await web3.eth.getAccounts();
 		const address = accounts[0];
+		this.setState({
+			onSubmit: true
+		});
 
 		const contract = new web3.eth.Contract(VICKREY_ABI);
 		contract
@@ -91,9 +139,17 @@ class VickreyAuction extends React.Component {
 					contractAddress: receipt.contractAddress,
 					account: address,
 					vickreyAuction: newContract,
+					onSubmit: false,
 					contractCreated: true
 				});
 				console.log(this.state.vickreyAuction);
+			})
+			.on("error", () => {
+				this.setState({
+					errore: true,
+					onSubmit: false,
+					contractCreated: true
+				});
 			});
 
 		this.cancel();
@@ -103,6 +159,7 @@ class VickreyAuction extends React.Component {
 		const target = event.target;
 		const value = target.value;
 		const name = target.name;
+		this.state.mapInput[name] = true;
 
 		this.setState({
 			[name]: value
@@ -121,11 +178,24 @@ class VickreyAuction extends React.Component {
 
 	closeModal() {
 		this.setState({
-			contractCreated: false
+			contractCreated: false,
+			onSubmit: false
 		});
 	}
 
 	render() {
+		const errors = validate(
+			this.state.Nome,
+			this.state.url,
+			this.state.baseAsta,
+			this.state.bidPhaseLength,
+			this.state.withdrawalPhaseLength,
+			this.state.bidOpeningPhaseLength,
+			this.state.bidDeposit,
+			this.state.numBlockStart
+		);
+		const isDisabled = Object.keys(errors).some(x => errors[x]);
+
 		return (
 			<div>
 				<section className="hero is-primary is-bold">
@@ -136,26 +206,69 @@ class VickreyAuction extends React.Component {
 					</div>
 				</section>
 				<br />
-
-				{this.state.contractCreated ? (
+				this.state.contractCreated ? ( this.state.errore ? (
+				<div className="modal is-active">
+					<div className="modal-background" onClick={this.closeModal} />
+					<div className="modal-card">
+						<header className="modal-card-head">
+							<p className="modal-card-title">Impossibile creare l'asta</p>
+							<button className="delete" onClick={this.closeModal} />
+						</header>
+						<section className="modal-card-body">
+							<div className="content">
+								Si è verificato un errore imprevisto.
+							</div>
+						</section>
+					</div>
+				</div>
+				) : (
+				<div className="modal is-active">
+					<div className="modal-background" onClick={this.closeModal} />
+					<div className="modal-card">
+						<header className="modal-card-head">
+							<p className="modal-card-title">Nuova asta creata</p>
+							<button className="delete" onClick={this.closeModal} />
+						</header>
+						<section className="modal-card-body">
+							<div className="content">
+								L'asta Vickrey è stata creata correttamente
+							</div>
+						</section>
+					</div>
+				</div>
+				) ) : (
+				<div />
+				)}
+				{this.state.onSubmit ? (
 					<div className="modal is-active">
 						<div className="modal-background" onClick={this.closeModal} />
 						<div className="modal-card">
 							<header className="modal-card-head">
-								<p className="modal-card-title">Nuova asta creata</p>
+								<p className="modal-card-title">
+									Attendi la creazione dell'asta
+								</p>
 								<button className="delete" onClick={this.closeModal} />
 							</header>
 							<section className="modal-card-body">
-								<div className="content">
-									L'asta Vicrey è stata creata correttamente
+								Potrebbero volerci fino a 30 secondi
+								<br />
+								<br />
+								<div className="PacmanLoader">
+									<PacmanLoader
+										css={override}
+										sizeUnit={"px"}
+										size={37}
+										color={"#36D7B7"}
+									/>
 								</div>
+								<br />
+								<br />
 							</section>
 						</div>
 					</div>
 				) : (
 					<div />
 				)}
-
 				<div className="container control">
 					<form
 						onSubmit={e => {
@@ -167,7 +280,13 @@ class VickreyAuction extends React.Component {
 							<label className="label">Cosa vuoi vendere?</label>
 							<div className="control">
 								<input
-									className="input"
+									className={
+										this.state.mapInput.Nome == false
+											? "input"
+											: errors.Nome
+											? "input is-danger"
+											: "input"
+									}
 									type="text"
 									name="Nome"
 									placeholder="Esempio: Maglia originale autografata da Ciro Immobile"
@@ -183,7 +302,13 @@ class VickreyAuction extends React.Component {
 							</label>
 							<div className="control">
 								<input
-									className="input"
+									className={
+										this.state.mapInput.url == false
+											? "input"
+											: errors.url
+											? "input is-danger"
+											: "input"
+									}
 									type="text"
 									name="url"
 									placeholder="http://www.pointerpodcast.it"
@@ -202,7 +327,13 @@ class VickreyAuction extends React.Component {
 							<label className="label">Base d'asta</label>
 							<div className="control">
 								<input
-									className="input"
+									className={
+										this.state.mapInput.baseAsta == false
+											? "input"
+											: errors.baseAsta
+											? "input is-danger"
+											: "input"
+									}
 									type="text"
 									name="baseAsta"
 									placeholder="Esempio: 1000000000000000000"
@@ -210,7 +341,7 @@ class VickreyAuction extends React.Component {
 									onChange={this.handleInputChange}
 								/>
 							</div>
-							<p className="help is-danger">
+							<p className="help">
 								Importante: Il prezzo va specificato in Wei
 							</p>
 						</div>
@@ -221,7 +352,13 @@ class VickreyAuction extends React.Component {
 							</label>
 							<div className="control">
 								<input
-									className="input"
+									className={
+										this.state.mapInput.bidPhaseLength == false
+											? "input"
+											: errors.bidPhaseLength
+											? "input is-danger"
+											: "input"
+									}
 									type="text"
 									name="bidPhaseLength"
 									placeholder="Esempio: 10"
@@ -241,7 +378,13 @@ class VickreyAuction extends React.Component {
 							</label>
 							<div className="control">
 								<input
-									className="input"
+									className={
+										this.state.mapInput.withdrawalPhaseLength == false
+											? "input"
+											: errors.withdrawalPhaseLength
+											? "input is-danger"
+											: "input"
+									}
 									type="text"
 									name="withdrawalPhaseLength"
 									placeholder="Esempio: 10"
@@ -261,7 +404,13 @@ class VickreyAuction extends React.Component {
 							</label>
 							<div className="control">
 								<input
-									className="input"
+									className={
+										this.state.mapInput.bidOpeningPhaseLength == false
+											? "input"
+											: errors.bidOpeningPhaseLength
+											? "input is-danger"
+											: "input"
+									}
 									type="text"
 									name="bidOpeningPhaseLength"
 									placeholder="Esempio: 10"
@@ -281,7 +430,13 @@ class VickreyAuction extends React.Component {
 							</label>
 							<div className="control">
 								<input
-									className="input"
+									className={
+										this.state.mapInput.numBlockStart == false
+											? "input"
+											: errors.numBlockStart
+											? "input is-danger"
+											: "input"
+									}
 									type="text"
 									name="numBlockStart"
 									placeholder="Esempio: 10"
@@ -301,7 +456,13 @@ class VickreyAuction extends React.Component {
 							</label>
 							<div className="control">
 								<input
-									className="input"
+									className={
+										this.state.mapInput.bidDeposit == false
+											? "input"
+											: errors.bidDeposit
+											? "input is-danger"
+											: "input"
+									}
 									type="text"
 									name="bidDeposit"
 									placeholder="Esempio: 1000000000000000000"
@@ -309,7 +470,7 @@ class VickreyAuction extends React.Component {
 									onChange={this.handleInputChange}
 								/>
 							</div>
-							<p className="help is-danger">
+							<p className="help">
 								Importante: Il prezzo va specificato in Wei
 							</p>
 						</div>
@@ -317,7 +478,11 @@ class VickreyAuction extends React.Component {
 						<br />
 						<div className="field is-grouped">
 							<div className="control">
-								<button type="submit" className="button is-link">
+								<button
+									type="submit"
+									className="button is-link"
+									disabled={isDisabled}
+								>
 									Submit
 								</button>
 							</div>
@@ -335,7 +500,6 @@ class VickreyAuction extends React.Component {
 						</div>
 					</form>
 				</div>
-
 				<br />
 				<br />
 				<Footer onUpdate={this.onUpdate} onBlockNumber={this.onBlockNumber} />
