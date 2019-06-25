@@ -34,15 +34,16 @@ class Concluse extends React.Component {
 			.getEndedAuctions()
 			.call({ from: this.state.account })
 			.then(function(result) {
+				console.log(result);
 				var mapping = [];
-				var length = result[0].length;
+				var length = result[0];
 				console.log(length);
 				for (var i = 0; i < length; i++) {
 					var tmp = {
 						openAuctions_Owner: result[0][i],
-						openAuctions_Title: result[1][i],
-						openAuctions_Url: result[2][i],
-						openAuctions_Type: result[3][i]
+						openAuctions_Title: result[2][i],
+						openAuctions_Url: result[3][i],
+						openAuctions_Type: parseInt(result[4][i])
 					};
 					mapping.push(tmp);
 				}
@@ -86,51 +87,9 @@ class Concluse extends React.Component {
 					</div>
 				) : (
 					<div style={{ margin: 10 }}>
-						<TileAsta auctionData={this.state.auctionData} />
+						<TileAsta auctionData={this.state.auctionData} clickable={false} />
 					</div>
 				)}
-
-				<nav className="pagination" role="navigation" aria-label="pagination">
-					<a className="pagination-previous">Previous</a>
-					<a className="pagination-next">Next page</a>
-					<ul className="pagination-list">
-						<li>
-							<a className="pagination-link" aria-label="Goto page 1">
-								1
-							</a>
-						</li>
-						<li>
-							<span className="pagination-ellipsis">&hellip;</span>
-						</li>
-						<li>
-							<a className="pagination-link" aria-label="Goto page 45">
-								45
-							</a>
-						</li>
-						<li>
-							<a
-								className="pagination-link is-current"
-								aria-label="Page 46"
-								aria-current="page"
-							>
-								46
-							</a>
-						</li>
-						<li>
-							<a className="pagination-link" aria-label="Goto page 47">
-								47
-							</a>
-						</li>
-						<li>
-							<span className="pagination-ellipsis">&hellip;</span>
-						</li>
-						<li>
-							<a className="pagination-link" aria-label="Goto page 86">
-								86
-							</a>
-						</li>
-					</ul>
-				</nav>
 
 				<Footer onUpdate={this.onUpdate} onBlockNumber={this.onBlockNumber} />
 			</div>

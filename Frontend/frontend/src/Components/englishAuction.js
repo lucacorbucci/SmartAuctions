@@ -72,6 +72,7 @@ class EnglishAuction extends React.Component {
 		this.handleInputChange = this.handleInputChange.bind(this);
 		this.cancel = this.cancel.bind(this);
 		this.closeModal = this.closeModal.bind(this);
+		this.closeModalAttesa = this.closeModalAttesa.bind(this);
 	}
 
 	onUpdate = val => {};
@@ -127,10 +128,10 @@ class EnglishAuction extends React.Component {
 
 				newContract.options.address = receipt.contractAddress;
 				this.setState({
+					onSubmit: false,
 					contractAddress: receipt.contractAddress,
 					account: address,
 					englishAuction: newContract,
-					onSubmit: false,
 					contractCreated: true
 				});
 				console.log(this.state.englishAuction);
@@ -160,6 +161,13 @@ class EnglishAuction extends React.Component {
 	closeModal() {
 		this.setState({
 			contractCreated: false,
+			onSubmit: false,
+			errore: false
+		});
+	}
+
+	closeModalAttesa() {
+		this.setState({
 			onSubmit: false
 		});
 	}
@@ -188,7 +196,7 @@ class EnglishAuction extends React.Component {
 				<br />
 
 				{this.state.contractCreated ? (
-					!this.state.errore ? (
+					this.state.errore ? (
 						<div className="modal is-active">
 							<div className="modal-background" onClick={this.closeModal} />
 							<div className="modal-card">
@@ -225,13 +233,13 @@ class EnglishAuction extends React.Component {
 
 				{this.state.onSubmit ? (
 					<div className="modal is-active">
-						<div className="modal-background" onClick={this.closeModal} />
+						<div className="modal-background" onClick={this.closeModalAttesa} />
 						<div className="modal-card">
 							<header className="modal-card-head">
 								<p className="modal-card-title">
 									Attendi la creazione dell'asta
 								</p>
-								<button className="delete" onClick={this.closeModal} />
+								<button className="delete" onClick={this.closeModalAttesa} />
 							</header>
 							<section className="modal-card-body">
 								Potrebbero volerci fino a 30 secondi
@@ -306,6 +314,22 @@ class EnglishAuction extends React.Component {
 								possibili acquirenti potranno capire meglio cosa stanno
 								acquistando
 							</p>
+							{/*
+							<div className="file has-name">
+								<label className="file-label">
+									<input className="file-input" type="file" name="resume" />
+									<span className="file-cta">
+										<span className="file-icon">
+											<i className="fas fa-upload" />
+										</span>
+										<span className="file-label">Choose a file…</span>
+									</span>
+									<span className="file-name">
+										Screen Shot 2017-07-29 at 15.54.25.png
+									</span>
+								</label>
+							</div>
+							*/}
 						</div>
 
 						<div className="field">

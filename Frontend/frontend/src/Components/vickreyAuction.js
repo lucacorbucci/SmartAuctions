@@ -23,7 +23,6 @@ function validate(
 	bidDeposit,
 	numBlockStart
 ) {
-	console.log("cal");
 	return {
 		Nome: Nome.length === 0,
 		url: url.length === 0,
@@ -80,6 +79,7 @@ class VickreyAuction extends React.Component {
 		this.cancel = this.cancel.bind(this);
 		this.startAuction = this.startAuction.bind(this);
 		this.closeModal = this.closeModal.bind(this);
+		this.closeModalInfo = this.closeModalInfo.bind(this);
 	}
 
 	onUpdate = val => {};
@@ -179,6 +179,12 @@ class VickreyAuction extends React.Component {
 	closeModal() {
 		this.setState({
 			contractCreated: false,
+			errore: false
+		});
+	}
+
+	closeModalInfo() {
+		this.setState({
 			onSubmit: false
 		});
 	}
@@ -206,48 +212,50 @@ class VickreyAuction extends React.Component {
 					</div>
 				</section>
 				<br />
-				this.state.contractCreated ? ( this.state.errore ? (
-				<div className="modal is-active">
-					<div className="modal-background" onClick={this.closeModal} />
-					<div className="modal-card">
-						<header className="modal-card-head">
-							<p className="modal-card-title">Impossibile creare l'asta</p>
-							<button className="delete" onClick={this.closeModal} />
-						</header>
-						<section className="modal-card-body">
-							<div className="content">
-								Si è verificato un errore imprevisto.
+				{this.state.contractCreated ? (
+					this.state.errore == true ? (
+						<div className="modal is-active">
+							<div className="modal-background" onClick={this.closeModal} />
+							<div className="modal-card">
+								<header className="modal-card-head">
+									<p className="modal-card-title">Impossibile creare l'asta</p>
+									<button className="delete" onClick={this.closeModal} />
+								</header>
+								<section className="modal-card-body">
+									<div className="content">
+										Si è verificato un errore imprevisto.
+									</div>
+								</section>
 							</div>
-						</section>
-					</div>
-				</div>
+						</div>
+					) : (
+						<div className="modal is-active">
+							<div className="modal-background" onClick={this.closeModal} />
+							<div className="modal-card">
+								<header className="modal-card-head">
+									<p className="modal-card-title">Nuova asta creata</p>
+									<button className="delete" onClick={this.closeModal} />
+								</header>
+								<section className="modal-card-body">
+									<div className="content">
+										L'asta Vickrey è stata creata correttamente
+									</div>
+								</section>
+							</div>
+						</div>
+					)
 				) : (
-				<div className="modal is-active">
-					<div className="modal-background" onClick={this.closeModal} />
-					<div className="modal-card">
-						<header className="modal-card-head">
-							<p className="modal-card-title">Nuova asta creata</p>
-							<button className="delete" onClick={this.closeModal} />
-						</header>
-						<section className="modal-card-body">
-							<div className="content">
-								L'asta Vickrey è stata creata correttamente
-							</div>
-						</section>
-					</div>
-				</div>
-				) ) : (
-				<div />
+					<div />
 				)}
 				{this.state.onSubmit ? (
 					<div className="modal is-active">
-						<div className="modal-background" onClick={this.closeModal} />
+						<div className="modal-background" onClick={this.closeModalInfo} />
 						<div className="modal-card">
 							<header className="modal-card-head">
 								<p className="modal-card-title">
 									Attendi la creazione dell'asta
 								</p>
-								<button className="delete" onClick={this.closeModal} />
+								<button className="delete" onClick={this.closeModalInfo} />
 							</header>
 							<section className="modal-card-body">
 								Potrebbero volerci fino a 30 secondi

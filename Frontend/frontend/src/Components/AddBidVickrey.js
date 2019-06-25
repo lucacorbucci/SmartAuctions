@@ -9,7 +9,9 @@ import Web3 from "web3";
 import abi from "ethereumjs-abi";
 import Footer from "./Footer";
 import { css } from "@emotion/core";
-import { GridLoader } from "react-spinners";
+import { GridLoader, HashLoader } from "react-spinners";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const override = css`
 	display: block;
@@ -21,6 +23,23 @@ const divAllPage = {
 	height: "80vh"
 };
 
+function validate(
+	bidAmountBid,
+	NonceBid,
+	NonceOpen,
+	HashRitiro,
+	BidAmountOpen
+) {
+	return {
+		bidAmountBid:
+			bidAmountBid.length === 0 || isNaN(bidAmountBid) || bidAmountBid < 0,
+		NonceBid: NonceBid.length === 0,
+		NonceOpen: NonceOpen.length === 0,
+		HashRitiro: HashRitiro.length === 0,
+		BidAmountOpen: BidAmountOpen.length === 0 || isNaN(BidAmountOpen)
+	};
+}
+
 class Concluse extends React.Component {
 	constructor(props) {
 		super(props);
@@ -28,7 +47,7 @@ class Concluse extends React.Component {
 			hovered: false,
 			auctionData: {},
 			contratto: "",
-			bidAmount: 0,
+			bidAmount: "",
 			web3: new Web3(Web3.givenProvider || "http://localhost:8545"),
 			blockNumber: "",
 			Phase: -1,
@@ -52,7 +71,16 @@ class Concluse extends React.Component {
 			highestBidder: "",
 			loaded: false,
 			title: undefined,
-			map: new Map()
+			map: new Map(),
+			errore: false,
+			mapInput: {
+				bidAmountBid: false,
+				NonceBid: false,
+				NonceOpen: false,
+				HashRitiro: false,
+				BidAmountOpen: false
+			},
+			url: ""
 		};
 
 		var blockNumber = undefined;
@@ -61,12 +89,13 @@ class Concluse extends React.Component {
 		this.handleInputChange = this.handleInputChange.bind(this);
 		this.generateHash = this.generateHash.bind(this);
 		this.closeModal = this.closeModal.bind(this);
+		this.closeModalInfo = this.closeModalInfo.bind(this);
 		this.ritiraBid = this.ritiraBid.bind(this);
 		this.openBid = this.openBid.bind(this);
 		this.checkBlock = this.checkBlock.bind(this);
 		this.finalize = this.finalize.bind(this);
 		this.onBlockNumber = this.onBlockNumber.bind(this);
-		this.cancel = this.cancel.bind(this);
+		this.notify = this.notify.bind(this);
 	}
 
 	onUpdate = val => {
@@ -193,6 +222,19 @@ class Concluse extends React.Component {
 		});
 	}
 
+	notify = (text, func) => {
+		const options = {
+			autoClose: 6000,
+			type: toast.TYPE.SUCCESS,
+			position: toast.POSITION.TOP_RIGHT,
+			pauseOnHover: true,
+			closeButton: true,
+			closeOnClick: true,
+			onClick: func
+		};
+		toast(text, options);
+	};
+
 	async componentDidMount() {
 		const contratto = new this.state.web3.eth.Contract(
 			VICKREY_ABI,
@@ -251,12 +293,24 @@ class Concluse extends React.Component {
 					},
 					highestBidder: result[12],
 					myAccount: address,
-					loaded: true,
 					title: result[1]
 				});
 				console.log(that.state.title);
 				console.log(that.state.loaded);
 				console.log("ciao");
+				contratto.methods
+					.getURL()
+					.call({ from: that.state.account })
+					.then(function(result) {
+						console.log(result);
+						that.setState({
+							url: result,
+							loaded: true
+						});
+					})
+					.catch(err => {
+						console.log("Failed with error: " + err);
+					});
 				that.checkBlock();
 			});
 
@@ -283,7 +337,16 @@ class Concluse extends React.Component {
 		var hash = this.generateHash();
 		const accounts = await this.state.web3.eth.getAccounts();
 		const address = accounts[0];
-		this.cancel();
+		this.setState({
+			onTransaction: true,
+			mapInput: {
+				bidAmountBid: false,
+				NonceBid: false,
+				NonceOpen: false,
+				HashRitiro: false,
+				BidAmountOpen: false
+			}
+		});
 		this.state.contratto.methods
 			.addBid(hash)
 			.send({
@@ -292,17 +355,33 @@ class Concluse extends React.Component {
 			})
 			.on("confirmation", (confirmationNumber, receipt) => {
 				console.log(receipt);
+				if (!this.state.map.has(receipt.blockHash)) {
+					this.setState({
+						onTransaction: false,
+						bidded: true,
+
+						Hash: hash,
+						NonceBid: "",
+						bidAmountBid: ""
+					});
+					this.state.map.set(receipt.blockHash, true);
+				}
+			})
+			.on("error", () => {
 				this.setState({
-					Hash: hash,
-					bidded: true
+					errore: true,
+					onTransaction: false
 				});
 			});
 	}
 
 	async ritiraBid() {
-		this.cancel();
+		this.setState({
+			onTransaction: true
+		});
 		const accounts = await this.state.web3.eth.getAccounts();
 		const address = accounts[0];
+		console.log(this.state.HashRitiro);
 		this.state.contratto.methods
 			.withdrawal(this.state.HashRitiro)
 			.send({
@@ -311,22 +390,24 @@ class Concluse extends React.Component {
 			.on("confirmation", (confirmationNumber, receipt) => {
 				console.log(receipt);
 				this.setState({
+					mapInput: {
+						bidAmountBid: false,
+						NonceBid: false,
+						NonceOpen: false,
+						HashRitiro: false,
+						BidAmountOpen: false
+					},
+					HashRitiro: "",
+					onTransaction: false,
 					ritirato: true
 				});
 			});
 	}
 
-	cancel() {
-		this.setState({
-			NonceBid: "",
-			bidAmountBid: 0,
-			NonceOpen: "",
-			BidAmountOpen: 0,
-			HashRitiro: ""
-		});
-	}
-
 	async finalize() {
+		this.setState({
+			onTransaction: true
+		});
 		const accounts = await this.state.web3.eth.getAccounts();
 		const address = accounts[0];
 		this.state.contratto.methods
@@ -338,10 +419,21 @@ class Concluse extends React.Component {
 				console.log(receipt);
 				console.log("conferma finalize");
 				this.setState({
-					finalized: true,
+					onTransaction: false,
+					
 					auctionData: {
-						isEnded: true
+						isEnded: true,
+						mapInput: {
+							bidAmountBid: false,
+							NonceBid: false,
+							NonceOpen: false,
+							HashRitiro: false,
+							BidAmountOpen: false
+						}
 					}
+				});
+				this.setState({
+					finalized: true
 				});
 			});
 	}
@@ -349,11 +441,15 @@ class Concluse extends React.Component {
 	async openBid() {
 		const accounts = await this.state.web3.eth.getAccounts();
 		const address = accounts[0];
-
+		this.setState({
+			onTransaction: true
+		});
 		var Nonce = this.state.web3.utils.asciiToHex(this.state.NonceOpen, 32);
 		console.log(Nonce);
 		console.log(address);
 		console.log(this.state.BidAmountOpen);
+		console.log(this.state.onTransaction);
+
 		this.state.contratto.methods
 			.openBid(Nonce)
 			.send({
@@ -366,9 +462,13 @@ class Concluse extends React.Component {
 			.on("confirmation", (confirmationNumber, receipt) => {
 				console.log(receipt);
 				this.setState({
+					onTransaction: false,
+					NonceOpen: "",
+					BidAmountOpen: "",
 					aperta: true
 				});
-				this.cancel();
+				console.log(this.state.onTransaction);
+				console.log(this.state.aperta);
 			});
 	}
 
@@ -376,7 +476,14 @@ class Concluse extends React.Component {
 		this.setState({
 			bidded: false,
 			ritirato: false,
-			finalized: false
+			finalized: false,
+			onTransaction: false
+		});
+	}
+
+	closeModalInfo() {
+		this.setState({
+			onTransaction: false
 		});
 	}
 
@@ -386,12 +493,23 @@ class Concluse extends React.Component {
 		const name = target.name;
 		console.log(name);
 		console.log(value);
+		this.state.mapInput[name] = true;
+
 		this.setState({
 			[name]: value
 		});
 	}
 
 	render() {
+		const errors = validate(
+			this.state.bidAmountBid,
+			this.state.NonceBid,
+			this.state.NonceOpen,
+			this.state.HashRitiro,
+			this.state.BidAmountOpen
+		);
+		const isDisabled = Object.keys(errors).some(x => errors[x]);
+
 		return (
 			<div>
 				<section className="hero is-primary is-bold">
@@ -404,6 +522,38 @@ class Concluse extends React.Component {
 				<br />
 				<div style={divAllPage}>
 					<div className="container control">
+						{this.state.onTransaction ? (
+							<div className="modal is-active">
+								<div
+									className="modal-background"
+									onClick={this.closeModalInfo}
+								/>
+								<div className="modal-card">
+									<header className="modal-card-head">
+										<p className="modal-card-title">Attendi</p>
+										<button className="delete" onClick={this.closeModalInfo} />
+									</header>
+									<section className="modal-card-body">
+										Potrebbero volerci fino a 30 secondi per confermare la
+										transazione
+										<br />
+										<br />
+										<div className="HashLoader">
+											<HashLoader
+												css={override}
+												sizeUnit={"px"}
+												size={37}
+												color={"#36D7B7"}
+											/>
+										</div>
+										<br />
+										<br />
+									</section>
+								</div>
+							</div>
+						) : (
+							<div />
+						)}
 						{this.state.loaded == false ? (
 							<div className="columns">
 								<div className="column is-one-half">
@@ -427,7 +577,7 @@ class Concluse extends React.Component {
 							<div className="columns">
 								<div className="column is-one-third">
 									<p className="image">
-										<img src="https://cdn.corrieredellosport.it/images/2019/06/12/172034860-211f05c4-c44c-4c85-9084-d3f0f1a483ca.jpg" />
+										<img src={this.state.url} />
 									</p>
 								</div>
 								<div className="column">
@@ -444,6 +594,9 @@ class Concluse extends React.Component {
 												<div className="message-body">
 													L'asta è terminata. Impossibile fare altre offerte
 													<br />
+													{this.state.highestBidder == this.state.myAddress
+														? "Hai vinto"
+														: "Hai perso"}
 												</div>
 											</article>
 										) : this.state.auctionData.bidPhaseStart <=
@@ -498,7 +651,13 @@ class Concluse extends React.Component {
 																<p className="button ">Nonce</p>
 															</p>
 															<input
-																className="input"
+																className={
+																	this.state.mapInput.NonceBid == false
+																		? "input"
+																		: errors.NonceBid == true
+																		? "input is-danger"
+																		: "input"
+																}
 																type="text"
 																onChange={this.handleInputChange}
 																placeholder="1000000000000000000"
@@ -511,7 +670,13 @@ class Concluse extends React.Component {
 																<p className="button ">Wei </p>
 															</p>
 															<input
-																className="input"
+																className={
+																	this.state.mapInput.bidAmountBid == false
+																		? "input"
+																		: errors.bidAmountBid == true
+																		? "input is-danger"
+																		: "input"
+																}
 																type="text"
 																onChange={this.handleInputChange}
 																placeholder="1000000000000000000"
@@ -582,7 +747,13 @@ class Concluse extends React.Component {
 																<p className="button ">Hash</p>
 															</p>
 															<input
-																className="input"
+																className={
+																	this.state.mapInput.HashRitiro == false
+																		? "input"
+																		: errors.HashRitiro == true
+																		? "input is-danger"
+																		: "input"
+																}
 																type="text"
 																onChange={this.handleInputChange}
 																placeholder="0x806a017E66E6af90018D4EBa0FFEA7f4d5FDa073"
@@ -657,7 +828,13 @@ class Concluse extends React.Component {
 																	<p className="button ">Nonce</p>
 																</p>
 																<input
-																	className="input"
+																	className={
+																		this.state.mapInput.NonceOpen == false
+																			? "input"
+																			: errors.NonceOpen == true
+																			? "input is-danger"
+																			: "input"
+																	}
 																	type="text"
 																	onChange={this.handleInputChange}
 																	placeholder="1000000000000000000"
@@ -670,7 +847,13 @@ class Concluse extends React.Component {
 																	<p className="button ">Wei </p>
 																</p>
 																<input
-																	className="input"
+																	className={
+																		this.state.mapInput.BidAmountOpen == false
+																			? "input"
+																			: errors.BidAmountOpen == true
+																			? "input is-danger"
+																			: "input"
+																	}
 																	type="text"
 																	onChange={this.handleInputChange}
 																	placeholder="1000000000000000000"

@@ -36,6 +36,7 @@ class LeMieAste extends React.Component {
 
 		const storageContract = new web3.eth.Contract(ABI_STORAGE, ADDRESS_STORAGE);
 		var that = this;
+
 		storageContract.methods
 			.getAllContracts()
 			.call({ from: this.state.account })
@@ -56,10 +57,11 @@ class LeMieAste extends React.Component {
 						mapping.push(tmp);
 					}
 				}
+
 				console.log(mapping);
 				that.setState({
-					auctionData: mapping,
-					loadedInCorso: true
+					loadedInCorso: true,
+					auctionData: mapping
 				});
 			});
 
@@ -67,22 +69,29 @@ class LeMieAste extends React.Component {
 			.getEndedAuctions()
 			.call({ from: this.state.account })
 			.then(function(result) {
+				console.log("///");
+				console.log("CIOOs");
+				//(counterEnded, owner, titolo, urlR, tipoR);
+				console.log(result);
 				var mapping = [];
-				var length = result[0].length;
+				var length = result[0];
 				console.log(length);
 				for (var i = 0; i < length; i++) {
-					var tmp = {
-						openAuctions_Owner: result[0][i],
-						openAuctions_Title: result[1][i],
-						openAuctions_Url: result[2][i],
-						openAuctions_Type: result[3][i]
-					};
-					mapping.push(tmp);
+					if (address == result[1][i]) {
+						var tmp = {
+							openAuctions_Owner: result[1][i],
+							openAuctions_Title: result[2][i],
+							openAuctions_Url: result[3][i],
+							openAuctions_Type: result[4][i]
+						};
+						mapping.push(tmp);
+					}
 				}
 				console.log(mapping);
+
 				that.setState({
-					auctionDataEnded: mapping,
-					loadedEnded: true
+					loadedEnded: true,
+					auctionDataEnded: mapping
 				});
 			});
 	}
@@ -98,9 +107,7 @@ class LeMieAste extends React.Component {
 					</div>
 				</section>
 				<br />
-				<div style={{ textAlign: "center" }}>
-					<h1 className="title is-2">Aste in corso</h1>
-				</div>
+
 				{this.state.loadedInCorso == false ? (
 					<div className="columns">
 						<div className="column is-one-half">
@@ -120,11 +127,17 @@ class LeMieAste extends React.Component {
 							<br />
 						</div>
 					</div>
-				) : (
-					<div style={{ margin: 10 }}>
-						<TileAsta auctionData={this.state.auctionData} />
+				) : this.state.auctionData.length != 0 ? (
+					<div style={{ textAlign: "center" }}>
+						<h1 className="title is-2">Aste in corso</h1>
 					</div>
+				) : (
+					<div />
 				)}
+
+				<div style={{ margin: 10 }}>
+					<TileAsta auctionData={this.state.auctionData} clickable={false} />
+				</div>
 
 				{this.state.loadedEnded == false ? (
 					<div className="columns">
@@ -145,13 +158,18 @@ class LeMieAste extends React.Component {
 							<br />
 						</div>
 					</div>
-				) : (
+				) : this.state.auctionDataEnded.length != 0 ? (
 					<div style={{ textAlign: "center" }}>
 						<h1 className="title is-2">Aste terminate</h1>
 					</div>
+				) : (
+					<div />
 				)}
 				<div style={{ margin: 10 }}>
-					<TileAsta auctionData={this.state.auctionDataEnded} />
+					<TileAsta
+						auctionData={this.state.auctionDataEnded}
+						clickable={false}
+					/>
 				</div>
 				<Footer onUpdate={this.onUpdate} onBlockNumber={this.onBlockNumber} />
 			</div>

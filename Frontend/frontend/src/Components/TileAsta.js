@@ -18,22 +18,25 @@ export default class TileAsta extends React.Component {
 						<div className="column equal-height is-10-mobile is-offset-1-mobile is-half-tablet is-one-third-desktop is-one-quarter-widescreen">
 							<div
 								onClick={e => {
-									if (auction.openAuctions_Type == 0) {
-										window.open(
-											"/addBid/" +
-												auction.openAuctions_ContractAddress +
-												"/" +
-												auction.openAuctions_Title,
-											"_self"
-										);
+									if (this.props.clickable == false) {
 									} else {
-										window.open(
-											"/addBidVickrey/" +
-												auction.openAuctions_ContractAddress +
-												"/" +
-												auction.openAuctions_Title,
-											"_self"
-										);
+										if (auction.openAuctions_Type == 0) {
+											window.open(
+												"/addBid/" +
+													auction.openAuctions_ContractAddress +
+													"/" +
+													auction.openAuctions_Title,
+												"_self"
+											);
+										} else {
+											window.open(
+												"/addBidVickrey/" +
+													auction.openAuctions_ContractAddress +
+													"/" +
+													auction.openAuctions_Title,
+												"_self"
+											);
+										}
 									}
 								}}
 							>
@@ -58,5 +61,6 @@ export default class TileAsta extends React.Component {
 }
 
 TileAsta.propTypes = {
-	auctionData: PropTypes.array.isRequired
+	auctionData: PropTypes.array.isRequired,
+	clickable: PropTypes.bool
 };

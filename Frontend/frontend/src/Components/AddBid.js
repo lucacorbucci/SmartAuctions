@@ -4,7 +4,7 @@ import { ENGLISH_ABI } from "../Ethereum/config.js";
 import Web3 from "web3";
 import Footer from "./Footer";
 import { css } from "@emotion/core";
-import { GridLoader } from "react-spinners";
+import { GridLoader, HashLoader } from "react-spinners";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -54,6 +54,7 @@ class Concluse extends React.Component {
 			numBlockLastOffer: undefined,
 			title: undefined,
 			map: new Map(),
+			onTransaction: false,
 			mapInput: {
 				bidAmount: false
 			}
@@ -65,6 +66,7 @@ class Concluse extends React.Component {
 		this.onBlockNumber = this.onBlockNumber.bind(this);
 		this.finalize = this.finalize.bind(this);
 		this.notify = this.notify.bind(this);
+		this.closeModalInfo = this.closeModalInfo.bind(this);
 
 		var blockNumber = 0;
 	}
@@ -198,9 +200,21 @@ class Concluse extends React.Component {
 
 					isDirectEnded: result[5],
 					highestBidder: result[10],
-					title: result[11],
-					loaded: true
+					title: result[11]
 				});
+				contratto.methods
+					.getURL()
+					.call({ from: that.state.account })
+					.then(function(result) {
+						console.log(result);
+						that.setState({
+							url: result,
+							loaded: true
+						});
+					})
+					.catch(err => {
+						console.log("Failed with error: " + err);
+					});
 			})
 			.catch(err => {
 				console.log("Failed with error: " + err);
@@ -210,6 +224,12 @@ class Concluse extends React.Component {
 	async addBid() {
 		const accounts = await this.state.web3.eth.getAccounts();
 		const address = accounts[0];
+		this.setState({
+			onTransaction: true,
+			mapInput: {
+				bidAmount: false
+			}
+		});
 		this.state.contratto.methods
 			.bid()
 			.send({
@@ -217,11 +237,19 @@ class Concluse extends React.Component {
 				value: this.state.bidAmount
 			})
 			.on("confirmation", (confirmationNumber, receipt) => {
+				this.cancel();
 				this.setState({
 					lastOffer: receipt.blockNumber,
 					myOffer: this.state.bidAmount,
 					isDirectEnded: true,
+					onTransaction: false,
 					lastOfferBlock: receipt.blockNumber
+				});
+			})
+			.on("error", () => {
+				this.setState({
+					errore: true,
+					onTransaction: false
 				});
 			});
 		this.cancel();
@@ -231,6 +259,12 @@ class Concluse extends React.Component {
 		const accounts = await this.state.web3.eth.getAccounts();
 		const address = accounts[0];
 		console.log(this.state.buyoutPrice);
+		this.setState({
+			onTransaction: true,
+			mapInput: {
+				bidAmount: false
+			}
+		});
 
 		this.state.contratto.methods
 			.acquistoDiretto()
@@ -241,9 +275,22 @@ class Concluse extends React.Component {
 			.on("confirmation", (confirmationNumber, receipt) => {
 				console.log("acquistato direttamente");
 				this.setState({
+					onTransaction: false,
 					isEnded: true
 				});
+			})
+			.on("error", () => {
+				this.setState({
+					onTransaction: false,
+					errore: true
+				});
 			});
+	}
+
+	closeModalInfo() {
+		this.setState({
+			onTransaction: false
+		});
 	}
 
 	handleInputChange(event) {
@@ -268,6 +315,7 @@ class Concluse extends React.Component {
 				from: address
 			})
 			.on("confirmation", (confirmationNumber, receipt) => {
+				this.cancel();
 				this.setState({
 					finalized: true,
 					isEnded: true
@@ -292,6 +340,38 @@ class Concluse extends React.Component {
 				<br />
 				<div style={divAllPage}>
 					<div className="container control">
+						{this.state.onTransaction ? (
+							<div className="modal is-active">
+								<div
+									className="modal-background"
+									onClick={this.closeModalInfo}
+								/>
+								<div className="modal-card">
+									<header className="modal-card-head">
+										<p className="modal-card-title">Attendi</p>
+										<button className="delete" onClick={this.closeModalInfo} />
+									</header>
+									<section className="modal-card-body">
+										Potrebbero volerci fino a 30 secondi per confermare la
+										transazione
+										<br />
+										<br />
+										<div className="HashLoader">
+											<HashLoader
+												css={override}
+												sizeUnit={"px"}
+												size={37}
+												color={"#36D7B7"}
+											/>
+										</div>
+										<br />
+										<br />
+									</section>
+								</div>
+							</div>
+						) : (
+							<div />
+						)}
 						{this.state.loaded == false ? (
 							<div className="columns">
 								<div className="column is-one-half">
@@ -315,7 +395,7 @@ class Concluse extends React.Component {
 							<div className="columns">
 								<div className="column is-one-third">
 									<p className="image">
-										<img src="https://cdn.corrieredellosport.it/images/2019/06/12/172034860-211f05c4-c44c-4c85-9084-d3f0f1a483ca.jpg" />
+										<img src={this.state.url} />
 									</p>
 								</div>
 								<div className="column">
@@ -343,9 +423,9 @@ class Concluse extends React.Component {
 												<div className="tile is-parent">
 													<article className="tile is-child notification is-primary">
 														<p className="subtitle">
-															Non è possibile fare altre offerte, se sei il
-															vincitore e o se hai creato l'asta puoi
-															terminarla.
+															{this.state.highestBidder === this.state.myAddress
+																? "Sei il vincitore, puoi finalizzare l'asta."
+																: "Non è possibile fare altre offerte, se hai creato l'asta puoi terminarla."}
 														</p>
 													</article>
 												</div>
