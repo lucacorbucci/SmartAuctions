@@ -1,6 +1,6 @@
 import React from "react";
 import "bulma/css/bulma.css";
-import Footer from "./Footer";
+import Footer from "../../../Components/Footer";
 
 class Regolamento extends React.Component {
 	onUpdate = val => {};

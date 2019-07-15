@@ -1,8 +1,8 @@
 import React from "react";
 import "bulma/css/bulma.css";
-import { ENGLISH_ABI } from "../Ethereum/config.js";
+import { ENGLISH_ABI } from "../../../Services/Ethereum/config.js";
 import Web3 from "web3";
-import Footer from "./Footer";
+import Footer from "../../../Components/Footer";
 import { css } from "@emotion/core";
 import { GridLoader, HashLoader } from "react-spinners";
 import { ToastContainer, toast } from "react-toastify";

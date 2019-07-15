@@ -23,7 +23,7 @@ export default class Navbar extends React.Component {
 					<div className="navbar-brand">
 						<a className="navbar-item" href={window.location.origin}>
 							<img
-								src={require("../Icon/AuctionIcon.png")}
+								src={require("../Services/Icon/AuctionIcon.png")}
 								width="120"
 								height="35"
 							/>

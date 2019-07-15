@@ -1,7 +1,7 @@
 import React from "react";
 import "bulma/css/bulma.css";
 import Web3 from "web3";
-import { ABI_STORAGE, ADDRESS_STORAGE } from "../Ethereum/config.js";
+import { ABI_STORAGE, ADDRESS_STORAGE } from "../Services/Ethereum/config.js";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 

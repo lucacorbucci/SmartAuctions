@@ -1,9 +1,12 @@
 import React from "react";
 import "bulma/css/bulma.css";
 import Web3 from "web3";
-import { VICKREY_DATA, VICKREY_ABI } from "../Ethereum/config.js";
+import {
+	VICKREY_DATA,
+	VICKREY_ABI
+} from "../../../Services/Ethereum/config.js";
 import Modal from "react-modal";
-import Footer from "./Footer";
+import Footer from "../../../Components/Footer";
 import { css } from "@emotion/core";
 import { PacmanLoader } from "react-spinners";
 

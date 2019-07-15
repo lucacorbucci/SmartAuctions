@@ -4,10 +4,10 @@ import {
 	VICKREY_ABI,
 	ABI_STORAGE,
 	ADDRESS_STORAGE
-} from "../Ethereum/config.js";
+} from "../../../Services/Ethereum/config.js";
 import Web3 from "web3";
 import abi from "ethereumjs-abi";
-import Footer from "./Footer";
+import Footer from "../../../Components/Footer";
 import { css } from "@emotion/core";
 import { GridLoader, HashLoader } from "react-spinners";
 import { ToastContainer, toast } from "react-toastify";
@@ -420,7 +420,7 @@ class Concluse extends React.Component {
 				console.log("conferma finalize");
 				this.setState({
 					onTransaction: false,
-					
+
 					auctionData: {
 						isEnded: true,
 						mapInput: {

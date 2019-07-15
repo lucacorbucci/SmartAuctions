@@ -1,10 +1,13 @@
 import React from "react";
 import "bulma/css/bulma.css";
-import TileAsta from "./TileAsta";
-import ParticleComponent from "./Particles";
+import TileAsta from "../../../Components/TileAsta";
+import ParticleComponent from "../../../Components/Particles";
 import Web3 from "web3";
-import { ABI_STORAGE, ADDRESS_STORAGE } from "../Ethereum/config.js";
-import Footer from "./Footer";
+import {
+	ABI_STORAGE,
+	ADDRESS_STORAGE
+} from "../../../Services/Ethereum/config.js";
+import Footer from "../../../Components/Footer";
 import { css } from "@emotion/core";
 import { GridLoader } from "react-spinners";
 

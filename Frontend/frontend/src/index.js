@@ -1,18 +1,18 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import { Route, BrowserRouter as Router } from "react-router-dom";
-import Header from "./Header";
+import Header from "./Components/Header";
 import * as serviceWorker from "./serviceWorker";
-import englishAuction from "./Components/englishAuction";
-import Home from "./Components/Home";
-import AsteConcluse from "./Components/asteConcluse";
-import Regolamento from "./Components/Regolamento";
-import AstaInglese from "./Components/englishAuction";
-import AstaVickrey from "./Components/vickreyAuction";
+import englishAuction from "./Scene/CreateEnglishAuction/Components/englishAuction";
+import Home from "./Scene/Home/Components/Home";
+import AsteConcluse from "./Scene/AsteConcluse/Components/asteConcluse";
+import Regolamento from "./Scene/Rules/Components/Regolamento";
+import AstaInglese from "./Scene/CreateEnglishAuction/Components/englishAuction";
+import AstaVickrey from "./Scene/CreateVickreyAuction/Components/vickreyAuction";
 
-import AddBid from "./Components/AddBid";
-import AddBidVickrey from "./Components/AddBidVickrey";
-import LeMieAste from "./Components/LeMieAste";
+import AddBid from "./Scene/AddBidEnglish/Components/AddBid";
+import AddBidVickrey from "./Scene/AddBidVickrey/Components/AddBidVickrey";
+import LeMieAste from "./Scene/MyAuctions/Components/LeMieAste";
 
 const routing = (
 	<Router>

@@ -3,11 +3,9 @@ import "bulma/css/bulma.css";
 import Web3 from "web3";
 import {
 	ENGLISH_DATA,
-	ENGLISH_ABI,
-	ABI_STORAGE,
-	ADDRESS_STORAGE
-} from "../Ethereum/config.js";
-import Footer from "./Footer";
+	ENGLISH_ABI
+} from "../../../Services/Ethereum/config.js";
+import Footer from "../../../Components/Footer";
 import { css } from "@emotion/core";
 import { PacmanLoader } from "react-spinners";
 

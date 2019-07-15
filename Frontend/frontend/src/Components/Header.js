@@ -1,7 +1,10 @@
 import React, { Component } from "react";
 import Web3 from "web3";
-import { TODO_LIST_ABI, TODO_LIST_ADDRESS } from "./Ethereum/config.js";
-import Navbar from "./Components/Navbar";
+import {
+	TODO_LIST_ABI,
+	TODO_LIST_ADDRESS
+} from "../Services/Ethereum/config.js";
+import Navbar from "./Navbar";
 
 class App extends Component {
 	constructor(props) {
