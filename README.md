@@ -1,6 +1,6 @@
 # SmartAuctions
 
-### Peer to Peer Systems and Blockchains Midterm
+### Peer to Peer Systems and Blockchains - Midterm
 ### Academic Year 2018-19
 
 This repo contains the final term and the final project developed for the "Peer to Peer Systems and Blockchains" course.
